@@ -1,0 +1,190 @@
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+
+colostrum_totol_list = list()
+prmMilkGeneralSettingFlat_total_list = list()
+colotrumTreatment_total_list = list()
+
+driver = "{SQL SERVER}"
+server = "TUR-TRI-L082"
+database = "Lely"
+
+
+class PrmMilkGeneralSettingFlat(object):
+    def __init__(self, MgsAniId, MgsColostrum):
+        self.MgsAniId = MgsAniId
+        self.MgsColostrum = MgsColostrum
+
+
+class Colostrum(object):
+    def __init__(self, cow_id, expected_duration, milk_destination):
+        self.cow_id = cow_id
+        self.expected_duration = expected_duration
+        self.milk_destination = milk_destination
+
+
+class Singleton(object):
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if Singleton.__instance is None:
+            Singleton()
+        return Singleton.__instance
+
+    def __init__(self):
+        if Singleton.__instance is not None:
+            raise Exception("This class is a Singleton")
+        else:
+            Singleton.__instance = self
+
+    @staticmethod
+    def connection():
+        try:
+            connection = pyodbc.connect(driver=driver, server=server, database=database, trusted_connection="yes")
+            cursor = connection.cursor()
+            return cursor
+        except Exception as e:
+            print(e)
+            connection.close()
+
+    @staticmethod
+    def prmMilkGeneralSettingFlat_query():
+        cursor = Singleton.connection()
+        query = "select MgsAniId , MgsColostrum  from PrmMilkGeneralSettingFlat order by 1 desc"
+        for row in cursor.execute(query):
+            new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0], row[1])
+            prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
+        return prmMilkGeneralSettingFlat_total_list
+
+    @staticmethod
+    def colostrum_query():
+        cursor = Singleton.connection()
+        query = "select * from colostrum order by 1 desc"
+        for row in cursor.execute(query):
+            new_colostrum = Colostrum(row[0], row[1], row[2])
+            colostrum_totol_list.append(new_colostrum)
+        return colostrum_totol_list
+
+    @staticmethod
+    def getTreatments(aniId):
+        cursor = Singleton.connection()
+        params = (aniId, aniId, aniId)
+        query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName FROM [HemDiagnoses] H WITH (NOLOCK)
+                    INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+                    INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+        			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                    WHERE S.MseAniId =? AND \
+        				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                        AND S.MseEndNow = 0
+        			UNION
+        			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
+                    FROM PrmMilkSeparation S
+        			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                    WHERE S.MseAniId =? AND
+        				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                        AND S.MseEndNow = 0
+                        AND MseId NOT IN
+        				(
+        					SELECT MseId
+        					FROM [HemDiagnoses] H WITH (NOLOCK)
+        					INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+        					INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+        					INNER JOIN LimSettingEnum ON MseSenId = SenId
+        					WHERE
+                                S.MseAniId =? AND
+        						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+        						AND S.MseEndNow = 0)"""
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        return row
+
+    @staticmethod
+    def convertMilkDestination(milkDestination):
+        case = {
+            "Milktank 1": "MILK_LINE_1", \
+            "Milktank 2": "MILK_LINE_2", \
+            "M4Use": "M4USE", \
+            "Bucket": "BUCKET", \
+            "Sewer": "SEWER", \
+            "Calf Milk Line": "CALF_MILK_LINE", \
+            }
+
+        return case.get(milkDestination, "SEWER")
+
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('prmMilkGeneralSettingFlat_01.xlsx')
+
+        colostrum = workbook.add_worksheet("colostrum")
+        prmMilkGeneralSettingFlat = workbook.add_worksheet("prmMilkGeneralSettingFlat")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        colostrum.set_column("A:C", 15)
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+        prmMilkGeneralSettingFlat.set_column("A:D", 21)
+        prmMilkGeneralSettingFlat.set_column("E:E", 32)
+
+        # Header section of colostrum WorkSheet file
+        colostrum.write('A1', 'cow_id', bold)
+        colostrum.write('B1', 'expected_duration', bold)
+        colostrum.write('C1', 'milk_destination', bold)
+
+        for i in range(len(list_2)):
+            colostrum.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id))
+            colostrum.write("B{}".format(i + 2), "{}".format(list_2[i].expected_duration))
+            colostrum.write("C{}".format(i + 2), "{}".format(list_2[i].milk_destination))
+
+        # Header section of prmMilkGeneralSettingFlat WorkSheet file
+        prmMilkGeneralSettingFlat.write('A1', 'MgsAniId', bold)
+        prmMilkGeneralSettingFlat.write('B1', 'MgsColostrum', bold)
+
+        for i in range(len(list_1)):
+            prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MgsAniId))
+            prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list_1[i].MgsColostrum))
+
+        for i in range(len(list_1)):
+            isEqual = False
+            for j in range(len(list_2)):
+
+                if list_1[i].MgsAniId == list_2[j].cow_id:
+                    isEqual = True
+                    colostrum.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
+
+                    if list_1[i].MgsColostrum != list_2[j].expected_duration:
+                        colostrum.write("B{}".format(i + 2), "{}".format(list1[i].MgsColostrum), red)
+
+                        getTreatment = Singleton.getTreatments(list_2[j].cow_id)
+                        if getTreatment != None:
+                            convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
+                            if list_2[j].milk_destinatoin != convertMilkDestination:
+                                colostrum.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), red)
+
+                if isEqual is False:
+                    colostrum.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    Singleton.connection()
+    list1 = Singleton.prmMilkGeneralSettingFlat_query()
+    list2 = Singleton.colostrum_query()
+    Singleton.compare(list1, list2)
