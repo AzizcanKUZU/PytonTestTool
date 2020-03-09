@@ -1,3 +1,4 @@
+
 import pyodbc
 import xlsxwriter
 from xlsxwriter import exceptions
@@ -72,33 +73,36 @@ class Singleton(object):
         cursor = Singleton.connection()
         params = (aniId, aniId, aniId)
         query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName FROM [HemDiagnoses] H WITH (NOLOCK)
-                    INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
-                    INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
-        			INNER JOIN LimSettingEnum ON MseSenId = SenId
-                    WHERE S.MseAniId =? AND \
-        				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-                        AND S.MseEndNow = 0
-        			UNION
-        			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
-                    FROM PrmMilkSeparation S
-        			INNER JOIN LimSettingEnum ON MseSenId = SenId
-                    WHERE S.MseAniId =? AND
-        				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-                        AND S.MseEndNow = 0
-                        AND MseId NOT IN
-        				(
-        					SELECT MseId
-        					FROM [HemDiagnoses] H WITH (NOLOCK)
-        					INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
-        					INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
-        					INNER JOIN LimSettingEnum ON MseSenId = SenId
-        					WHERE
-                                S.MseAniId =? AND
-        						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-        						AND S.MseEndNow = 0)"""
+                INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+                INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+    			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE S.MseAniId =? AND 
+    				 --GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    --AND
+					S.MseEndNow = 0
+    			UNION
+    			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
+                FROM PrmMilkSeparation S
+    			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE S.MseAniId =? AND
+    				--GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    --AND 
+					S.MseEndNow = 0
+                    AND MseId NOT IN
+    				(
+    					SELECT MseId
+    					FROM [HemDiagnoses] H WITH (NOLOCK)
+    					INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+    					INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+    					INNER JOIN LimSettingEnum ON MseSenId = SenId
+    					WHERE
+                            S.MseAniId =? AND
+    						GETDATE() BETWEEN 
+							S.MseStartDate AND S.MseEndDate
+    						AND S.MseEndNow = 0)"""
         cursor.execute(query, params)
         row = cursor.fetchone()
-        return row
+        return row[4]
 
     @staticmethod
     def convertMilkDestination(milkDestination):
@@ -165,8 +169,9 @@ class Singleton(object):
                         getTreatment = Singleton.getTreatments(list_2[j].cow_id)
                         if getTreatment != None:
                             convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
-                            if list_2[j].milk_destinatoin != convertMilkDestination:
-                                colostrum.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), red)
+                            if list_2[j].milk_destination != None:
+                                if list_2[j].milk_destination == convertMilkDestination:
+                                    colostrum.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
 
                 if isEqual is False:
                     colostrum.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
