@@ -91,16 +91,18 @@ class Singleton(object):
                 INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
                 INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
     			INNER JOIN LimSettingEnum ON MseSenId = SenId
-                WHERE S.MseAniId =? AND \
-    				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-                    AND S.MseEndNow = 0
+                WHERE S.MseAniId =? AND 
+    				 --GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    --AND
+					S.MseEndNow = 0
     			UNION
     			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
                 FROM PrmMilkSeparation S
     			INNER JOIN LimSettingEnum ON MseSenId = SenId
                 WHERE S.MseAniId =? AND
-    				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-                    AND S.MseEndNow = 0
+    				--GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    --AND 
+					S.MseEndNow = 0
                     AND MseId NOT IN
     				(
     					SELECT MseId
@@ -110,11 +112,12 @@ class Singleton(object):
     					INNER JOIN LimSettingEnum ON MseSenId = SenId
     					WHERE
                             S.MseAniId =? AND
-    						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+    						GETDATE() BETWEEN 
+							S.MseStartDate AND S.MseEndDate
     						AND S.MseEndNow = 0)"""
         cursor.execute(query, params)
         row = cursor.fetchone()
-        return row
+        return row[4]
 
     @staticmethod
     def convertMilkDestination(milkDestination):
@@ -183,8 +186,9 @@ class Singleton(object):
                     getTreatment = Singleton.getTreatments(list_2[j].cow_id)
                     if getTreatment != None:
                         convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
-                        if list_2[j].milk_destinatoin != convertMilkDestination:
-                            colostrum_override.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), red)
+                        if list2[j].milk_destination != None:
+                            if list2[j].milk_destination == convertMilkDestination:
+                                colostrum_override.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
 
                 if isEqual is False:
                     colostrum_override.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
