@@ -1,0 +1,208 @@
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+from datetime import datetime
+import time
+
+colostrum_override_totol_list = list()
+prmMilkGeneralSettingFlat_total_list = list()
+
+driver = "{SQL SERVER}"
+server = "TUR-TRI-L082"
+database = "Lely"
+
+class PrmMilkGeneralSettingFlat(object):
+    def __init__(self, MgsAniId):
+        self.MgsAniId = MgsAniId
+
+class Colostrum_Override(object):
+    def __init__(self, cow_id, end_time, milk_destination):
+        self.cow_id = cow_id
+        self.end_time = end_time
+        self.milk_destination = milk_destination
+
+class Singleton(object):
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if Singleton.__instance is None:
+            Singleton()
+        return Singleton.__instance
+
+    def __init__(self):
+        if Singleton.__instance is not None:
+            raise Exception("This class is a Singleton")
+        else:
+            Singleton.__instance = self
+
+    @staticmethod
+    def connection():
+        try:
+            connection = pyodbc.connect(driver=driver, server=server, database=database, trusted_connection="yes")
+            cursor = connection.cursor()
+            return cursor
+        except Exception as e:
+            print(e)
+            connection.close()
+
+    @staticmethod
+    def prmMilkGeneralSettingFlat_query():
+        cursor = Singleton.connection()
+        query = "select MgsAniId from PrmMilkGeneralSettingFlat order by 1 desc"
+        for row in cursor.execute(query):
+            new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0])
+            prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
+        return prmMilkGeneralSettingFlat_total_list
+
+    @staticmethod
+    def colostrum_override_query():
+        cursor = Singleton.connection()
+        query = "select * from colostrum_override order by 1 desc"
+        for row in cursor.execute(query):
+            new_colostrum = Colostrum_Override(row[0], row[1], row[2])
+            colostrum_override_totol_list.append(new_colostrum)
+        return colostrum_override_totol_list
+
+    @staticmethod
+    def getMseEndDate(aniId):
+        cursor = Singleton.connection()
+        query = "SELECT TOP 1 MseEndDate\
+              FROM PrmMilkSeparation WITH (NOLOCK)\
+              WHERE MseStyId = 2\
+              AND MseEndNow = 0\
+              AND MseAniId = ?\
+            ORDER BY MseEndDate DESC"
+
+        cursor.execute(query, aniId)
+        result = cursor.fetchone()
+        if result != None:
+            for row in result:
+                date_time = row.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+             date_time = ""
+        return date_time
+
+    @staticmethod
+    def getTreatments(aniId):
+        cursor = Singleton.connection()
+        params = (aniId, aniId, aniId)
+        query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName FROM [HemDiagnoses] H WITH (NOLOCK)
+                INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+                INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+    			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE S.MseAniId =? AND \
+    				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    AND S.MseEndNow = 0
+    			UNION
+    			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
+                FROM PrmMilkSeparation S
+    			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE S.MseAniId =? AND
+    				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    AND S.MseEndNow = 0
+                    AND MseId NOT IN
+    				(
+    					SELECT MseId
+    					FROM [HemDiagnoses] H WITH (NOLOCK)
+    					INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+    					INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+    					INNER JOIN LimSettingEnum ON MseSenId = SenId
+    					WHERE
+                            S.MseAniId =? AND
+    						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+    						AND S.MseEndNow = 0)"""
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        return row
+
+    @staticmethod
+    def convertMilkDestination(milkDestination):
+        case = {
+            "Milktank 1": "MILK_LINE_1", \
+            "Milktank 2": "MILK_LINE_2", \
+            "M4Use": "M4USE", \
+            "Bucket": "BUCKET", \
+            "Sewer": "SEWER", \
+            "Calf Milk Line": "CALF_MILK_LINE", \
+            }
+        return case.get(milkDestination, "SEWER")
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('_Colotrum_Override01.xlsx')
+
+        colostrum_override = workbook.add_worksheet("colostrum")
+        prmMilkGeneralSettingFlat = workbook.add_worksheet("prmMilkGeneralSettingFlat")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        colostrum_override.set_column("A:C", 15)
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+        prmMilkGeneralSettingFlat.set_column("A:D", 21)
+        prmMilkGeneralSettingFlat.set_column("E:E", 32)
+
+        # Header section of colostrum_override WorkSheet file
+        colostrum_override.write('A1', 'cow_id', bold)
+        colostrum_override.write('B1', 'end_time', bold)
+        colostrum_override.write('C1', 'milk_destination', bold)
+
+        for i in range(len(list_2)):
+            colostrum_override.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id))
+            colostrum_override.write("B{}".format(i + 2), "{}".format(list_2[i].end_time))
+            colostrum_override.write("C{}".format(i + 2), "{}".format(list_2[i].milk_destination))
+
+            # Header section of prmMilkGeneralSettingFlat WorkSheet file
+            prmMilkGeneralSettingFlat.write('A1', 'MgsAniId', bold)
+
+        for j in range(len(list_1)):
+            prmMilkGeneralSettingFlat.write("A{}".format(j + 2), "{}".format(list_1[j].MgsAniId))
+
+        for i in range(len(list_1)):
+            isEqual = False
+            for j in range(len(list_2)):
+
+                if list_1[i].MgsAniId == list_2[j].cow_id:
+                    isEqual = True
+                    colostrum_override.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
+
+                    getMseEndDate = Singleton.getMseEndDate(list_2[j].cow_id)
+                    if getMseEndDate != "":
+                        if list_2[j].end_time != getMseEndDate:
+                            colostrum_override.write("B{}".format(i + 2), "{}".format(list2[j].end_time), red)
+                        else:
+                            colostrum_override.write("B{}".format(i + 2), "{}".format(list2[j].end_time), green)
+                    else:
+                        colostrum_override.write("B{}".format(i + 2), "{}".format(list2[j].end_time), yellow)
+
+                    getTreatment = Singleton.getTreatments(list_2[j].cow_id)
+                    if getTreatment != None:
+                        convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
+                        if list_2[j].milk_destinatoin != convertMilkDestination:
+                            colostrum_override.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), red)
+
+                if isEqual is False:
+                    colostrum_override.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    Singleton.connection()
+    list1 = Singleton.prmMilkGeneralSettingFlat_query()
+    list2 = Singleton.colostrum_override_query()
+    Singleton.compare(list1, list2)
