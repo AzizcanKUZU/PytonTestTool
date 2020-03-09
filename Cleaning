@@ -1,0 +1,145 @@
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+
+cleaning_total_list = list()
+prmMilkPostSettingFlat_total_list = list()
+
+driver = "{SQL SERVER}"
+server = "TUR-TRI-L082"
+database = "Lely"
+
+class Cleaning(object):
+    def __init__(self, cow_id, cleaning_type_after_milking):
+        self.cow_id = cow_id
+        self.cleaning_type_after_milking = cleaning_type_after_milking
+
+class PrmMilkPostSettingFlat(object):
+    def __init__(self, MpoAniId, MpoCleanMilkEquipment):
+        self.MpoAniId = MpoAniId
+        self.MpoCleanMilkEquipment = MpoCleanMilkEquipment
+
+class Singleton(object):
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if Singleton.__instance is None:
+            Singleton()
+        return Singleton.__instance
+
+    def __init__(self):
+        if Singleton.__instance is not None:
+            raise Exception("This class is a Singleton")
+        else:
+            Singleton.__instance = self
+
+    @staticmethod
+    def connection():
+        try:
+            connection = pyodbc.connect(driver=driver, server=server, database=database, trusted_connection="yes")
+            cursor = connection.cursor()
+            return cursor
+        except Exception as e:
+            print(e)
+            connection.close()
+
+    @staticmethod
+    def cleaning_query():
+        cursor = Singleton.connection()
+        query = "select * from cleaning order by 1 desc"
+        for row in cursor.execute(query):
+            new_cleaning = Cleaning(row[0], row[1])
+            cleaning_total_list.append(new_cleaning)
+        return cleaning_total_list
+
+    @staticmethod
+    def prmMilkPostSettingFlat_query():
+        cursor = Singleton.connection()
+        query = "select MpoAniId, MpoCleanMilkEquipment from PrmMilkPostSettingFlat order by 1 desc"
+        for row in cursor.execute(query):
+            new_prmMilkPostSettingFlat = PrmMilkPostSettingFlat(row[0], row[1])
+            prmMilkPostSettingFlat_total_list.append(new_prmMilkPostSettingFlat)
+        return prmMilkPostSettingFlat_total_list
+
+    @staticmethod
+    def switch(param):
+        case = {
+            0: "NONE",\
+            1: "LELY_WASH",\
+            2: "RINSING",\
+            3: "STEAM_AND_LELY_WASH",\
+            4: "STEAM_AND_RINSING",\
+            }
+        return case.get(param, "")
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('PrmMilkPostSettingFlat.xlsx')
+        cleaning = workbook.add_worksheet("Cleaning")
+        prmMilkPostSettingFlat = workbook.add_worksheet("PrmMilkPostSettingFlat")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        cleaning.set_column("A:C", 15)
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+        prmMilkPostSettingFlat.set_column("A:D", 21)
+        prmMilkPostSettingFlat.set_column("E:E", 32)
+
+        # Header section of cleaning WorkSheet file
+        prmMilkPostSettingFlat.write('A1', 'MpoAniId', bold)
+        prmMilkPostSettingFlat.write('B1', 'MpoCleanMilkEquipment', bold)
+
+        for i in range(len(list_1)):
+            prmMilkPostSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MpoAniId))
+            prmMilkPostSettingFlat.write('B{}'.format(i + 2), '{}'.format(list_1[i].MpoCleanMilkEquipment))
+
+        # Header section of prmMilkPostSettingFlat WorkSheet file
+        cleaning.write('A1', 'cow_id', bold)
+        cleaning.write('B1', 'cleaning_type_after_milking', bold)
+
+        for i in range(len(list_2)):
+            cleaning.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id))
+            cleaning.write("B{}".format(i + 2), "{}".format(list_2[i].cleaning_type_after_milking))
+
+        for i in range(len(list1)):
+            isEqual = False
+            for j in range(len(list2)):
+                if list1[i].MpoAniId == list2[j].cow_id:
+                    isEqual = True
+                    cleaning.write("A{}".format(i + 2), "{}".format(list1[i].MpoAniId), green)
+
+                    milkEquipment = Singleton.switch(list1[i].MpoCleanMilkEquipment)
+                    if list2[j].cleaning_type_after_milking == milkEquipment:
+                        cleaning.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), green)
+                    else:
+                        cleaning.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), red)
+
+                    if list2[j].cleaning_type_after_milking == "" and list1[i].MpoCleanMilkEquipment != "":
+                        cleaning.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), yellow)
+
+                if isEqual is False:
+                    cleaning.write("A{}".format(i + 2), "{}".format(list1[i].MpoAniId), red)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    Singleton.connection()
+    list1 = Singleton.prmMilkPostSettingFlat_query()
+    list2 = Singleton.cleaning_query()
+    Singleton.compare(list1, list2)
