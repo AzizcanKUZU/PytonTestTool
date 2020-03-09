@@ -1,0 +1,153 @@
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+
+hemAnimalTotalList = list()
+animal_information_total_list = list()
+
+driver = "{SQL SERVER}"
+server = "TUR-TRI-L082"
+database = "Lely"
+
+
+class AnimalInformation(object):
+    def __init__(self, animal_id, animal_number, animal_name):
+        self.animal_id = animal_id
+        self.animal_number = animal_number
+        self.animal_name = animal_name
+
+
+class HemAnimal(object):
+    def __init__(self, AniId, AniName, AniUserNumber, AniResponderNumber):
+        self.AniId = AniId
+        self.AniName = AniName
+        self.AniUserNumber = AniUserNumber
+        self.AniResponderNumber = AniResponderNumber
+
+
+class Singleton(object):
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if Singleton.__instance is None:
+            Singleton()
+        return Singleton.__instance
+
+    def __init__(self):
+        if Singleton.__instance is not None:
+            raise Exception("This class is a Singleton")
+        else:
+            Singleton.__instance = self
+
+    @staticmethod
+    def connection():
+        try:
+            connection = pyodbc.connect(driver=driver, server=server, database=database, trusted_connection="yes")
+            cursor = connection.cursor()
+            return cursor
+        except Exception as e:
+            print(e)
+            connection.close()
+
+    @staticmethod
+    def hem_animal_query():
+        cursor = Singleton.connection()
+        query = "select AniId, AniName, AniUserNumber, AniResponderNumber from HemAnimal where AniActive = 1 and AniDeleted = 0 and AniLocId = 1 order by AniId asc"
+        for row in cursor.execute(query):
+            new_hem_animal = HemAnimal(row[0], row[1], row[2], row[3])
+            hemAnimalTotalList.append(new_hem_animal)
+        return hemAnimalTotalList
+
+    @staticmethod
+    def animal_information_query():
+        cursor = Singleton.connection()
+        query = "select * from animal_information order by animal_id asc"
+        for row in cursor.execute(query):
+            new_animal_information = AnimalInformation(row[0], row[1], row[2])
+            animal_information_total_list.append(new_animal_information)
+        return animal_information_total_list
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('HemAnimalBasedComparison.xlsx')
+        hem_animal = workbook.add_worksheet("HemAnimal")
+        animal_information = workbook.add_worksheet("animal_information")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        animal_information.set_column("A:C", 15)
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+        hem_animal.set_column("A:D", 21)
+        hem_animal.set_column("E:E", 32)
+
+        # Header section of HemAnimal WorkSheet file
+        hem_animal.write('A1', 'AniId', bold)
+        hem_animal.write('B1', 'AniName', bold)
+        hem_animal.write('C1', 'AniUserNumber', bold)
+        hem_animal.write('D1', 'AniResponderNumber', bold)
+
+        for i in range(len(list_1)):
+            hem_animal.write("A{}".format(i + 2), "{}".format(list_1[i].AniId))
+            hem_animal.write('B{}'.format(i + 2), '{}'.format(list_1[i].AniName))
+            hem_animal.write('C{}'.format(i + 2), '{}'.format(list_1[i].AniUserNumber))
+            hem_animal.write('D{}'.format(i + 2), '{}'.format(list_1[i].AniResponderNumber))
+
+        # Header section of animal_information WorkSheet file
+        animal_information.write('A1', 'animal_id', bold)
+        animal_information.write('B1', 'animal_number', bold)
+        animal_information.write('C1', 'animal_name', bold)
+
+        for i in range(len(list_2)):
+            animal_information.write("A{}".format(i + 2), "{}".format(list_2[i].animal_id))
+            animal_information.write("B{}".format(i + 2), "{}".format(list_2[i].animal_number))
+            animal_information.write("C{}".format(i + 2), "{}".format(list_2[i].animal_name))
+
+        for i in range(len(list_1)):
+            isEqual = False
+            for j in range(len(list_2)):
+
+                if list_1[i].AniId == list_2[j].animal_id:
+                    isEqual = True
+                    hem_animal.write("A{}".format(i + 2), "{}".format(list_1[i].AniId), green)
+
+                if isEqual is False:
+                    hem_animal.write("A{}".format(i + 2), "{}".format(list_1[i].AniId), red)
+
+                if list_1[i].AniUserNumber == list_2[j].animal_number:
+                    hem_animal.write("C{}".format(i + 2), "{}".format(list_1[i].AniUserNumber), green)
+
+                    if list_1[i].AniName == list_2[j].animal_name:
+                        hem_animal.write("B{}".format(i + 2), "{}".format(list_1[i].AniName), green)
+
+                    else:
+                        hem_animal.write("B{}".format(i + 2), "{}".format(list_1[i].AniName), red)
+
+                if list_1[i].AniName == "" and list_2[j].animal_name == "" and list_1[i].AniResponderNumber != "":
+                    hem_animal.write("B{}".format(i + 2), "{}".format(list_1[i].AniName), yellow)
+
+                if list_1[i].AniResponderNumber == "":
+                    hem_animal.write("D{}".format(i + 2), "{}".format(list_1[i].AniResponderNumber), yellow)
+                    hem_animal.write("E{}".format(i + 2), "{}".format("No tag for young animals and bulls"), bold)
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    Singleton.connection()
+    list1 = Singleton.hem_animal_query()
+    list2 = Singleton.animal_information_query()
+    Singleton.compare(list1, list2)
