@@ -7,17 +7,19 @@ prmMilkPostSettingFlat_total_list = list()
 
 driver = "{SQL SERVER}"
 server = "TUR-TRI-L082"
-database = "Lely"
+database = "Lely_Baan"
 
 class Cleaning(object):
     def __init__(self, cow_id, cleaning_type_after_milking):
         self.cow_id = cow_id
         self.cleaning_type_after_milking = cleaning_type_after_milking
 
+
 class PrmMilkPostSettingFlat(object):
-    def __init__(self, MpoAniId, MpoCleanMilkEquipment):
+    def __init__(self, MpoAniId, MpoCleanMilkEquipment, AniResponderNumber):
         self.MpoAniId = MpoAniId
         self.MpoCleanMilkEquipment = MpoCleanMilkEquipment
+        self.AniResponderNumber = AniResponderNumber
 
 class Singleton(object):
     __instance = None
@@ -45,22 +47,28 @@ class Singleton(object):
             connection.close()
 
     @staticmethod
+    def prmMilkPostSettingFlat_query():
+        cursor = Singleton.connection()
+        query = """SELECT ppst.MpoAniId , ppst.MpoCleanMilkEquipment, ha.AniResponderNumber FROM HemAnimal ha
+                   JOIN PrmMilkPostSettingFlat ppst
+                   ON ha.AniId =  ppst.MpoAniId WHERE
+                   HA.AniActive = 1 
+                   AND HA.AniDeleted = 0 
+                   and ha.AniLocId = 1"""
+
+        for row in cursor.execute(query):
+            new_prmMilkPostSettingFlat = PrmMilkPostSettingFlat(row[0], row[1], row[2])
+            prmMilkPostSettingFlat_total_list.append(new_prmMilkPostSettingFlat)
+        return prmMilkPostSettingFlat_total_list
+
+    @staticmethod
     def cleaning_query():
         cursor = Singleton.connection()
-        query = "select * from cleaning order by 1 desc"
+        query = "select * from cleaning order by cow_id asc"
         for row in cursor.execute(query):
             new_cleaning = Cleaning(row[0], row[1])
             cleaning_total_list.append(new_cleaning)
         return cleaning_total_list
-
-    @staticmethod
-    def prmMilkPostSettingFlat_query():
-        cursor = Singleton.connection()
-        query = "select MpoAniId, MpoCleanMilkEquipment from PrmMilkPostSettingFlat order by 1 desc"
-        for row in cursor.execute(query):
-            new_prmMilkPostSettingFlat = PrmMilkPostSettingFlat(row[0], row[1])
-            prmMilkPostSettingFlat_total_list.append(new_prmMilkPostSettingFlat)
-        return prmMilkPostSettingFlat_total_list
 
     @staticmethod
     def switch(param):
@@ -77,9 +85,9 @@ class Singleton(object):
     def compare(list_1, list_2):
 
         # First create a workbook then add a worksheet
-        workbook = xlsxwriter.Workbook('PrmMilkPostSettingFlat.xlsx')
-        cleaning = workbook.add_worksheet("Cleaning")
+        workbook = xlsxwriter.Workbook('Cleaning01.xlsx')
         prmMilkPostSettingFlat = workbook.add_worksheet("PrmMilkPostSettingFlat")
+        cleaning = workbook.add_worksheet("Cleaning")
 
         # Cell format section
         red = workbook.add_format({'bold': True, 'bg_color': 'red'})
@@ -94,10 +102,12 @@ class Singleton(object):
         # Header section of cleaning WorkSheet file
         prmMilkPostSettingFlat.write('A1', 'MpoAniId', bold)
         prmMilkPostSettingFlat.write('B1', 'MpoCleanMilkEquipment', bold)
+        prmMilkPostSettingFlat.write('C1', 'AniResponderNumber', bold)
 
         for i in range(len(list_1)):
             prmMilkPostSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MpoAniId))
             prmMilkPostSettingFlat.write('B{}'.format(i + 2), '{}'.format(list_1[i].MpoCleanMilkEquipment))
+            prmMilkPostSettingFlat.write('C{}'.format(i + 2), '{}'.format(list_1[i].AniResponderNumber))
 
         # Header section of prmMilkPostSettingFlat WorkSheet file
         cleaning.write('A1', 'cow_id', bold)
@@ -110,21 +120,26 @@ class Singleton(object):
         for i in range(len(list1)):
             isEqual = False
             for j in range(len(list2)):
-                if list1[i].MpoAniId == list2[j].cow_id:
+
+                if list_1[i].MpoAniId == list2[j].cow_id:
                     isEqual = True
-                    cleaning.write("A{}".format(i + 2), "{}".format(list1[i].MpoAniId), green)
+                    prmMilkPostSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MpoAniId), green)
 
                     milkEquipment = Singleton.switch(list1[i].MpoCleanMilkEquipment)
                     if list2[j].cleaning_type_after_milking == milkEquipment:
-                        cleaning.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), green)
+                        prmMilkPostSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), green)
                     else:
-                        cleaning.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), red)
+                        prmMilkPostSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), red)
 
-                    if list2[j].cleaning_type_after_milking == "" and list1[i].MpoCleanMilkEquipment != "":
-                        cleaning.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), yellow)
+                    if list_2[j].cleaning_type_after_milking == "" and list1[i].MpoCleanMilkEquipment != "":
+                        prmMilkPostSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].cleaning_type_after_milking), yellow)
 
                 if isEqual is False:
-                    cleaning.write("A{}".format(i + 2), "{}".format(list1[i].MpoAniId), red)
+                    prmMilkPostSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MpoAniId), red)
+
+                if list1[i].AniResponderNumber == "":
+                    prmMilkPostSettingFlat.write("C{}".format(i + 2), "{}".format(list1[i].AniResponderNumber), yellow)
+                    prmMilkPostSettingFlat.write("D{}".format(i + 2), "{}".format("No tag for young animals and bulls"),bold)
 
         while True:
             try:
