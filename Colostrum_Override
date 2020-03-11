@@ -9,7 +9,7 @@ prmMilkGeneralSettingFlat_total_list = list()
 
 driver = "{SQL SERVER}"
 server = "TUR-TRI-L082"
-database = "Lely"
+database = "Lely_Baan"
 
 class PrmMilkGeneralSettingFlat(object):
     def __init__(self, MgsAniId):
@@ -49,7 +49,12 @@ class Singleton(object):
     @staticmethod
     def prmMilkGeneralSettingFlat_query():
         cursor = Singleton.connection()
-        query = "select MgsAniId from PrmMilkGeneralSettingFlat order by 1 desc"
+        query = """SELECT ppst.MgsAniId, MgsColostrum   FROM HemAnimal ha
+                   JOIN PrmMilkGeneralSettingFlat ppst
+                    ON ha.AniId =  ppst.MgsAniId WHERE
+                    HA.AniActive = 1 
+                    AND HA.AniDeleted = 0 
+                    and ha.AniLocId = 10"""
         for row in cursor.execute(query):
             new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0])
             prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
@@ -58,7 +63,7 @@ class Singleton(object):
     @staticmethod
     def colostrum_override_query():
         cursor = Singleton.connection()
-        query = "select * from colostrum_override order by 1 desc"
+        query = "select * from colostrum_override order by cow_id asc"
         for row in cursor.execute(query):
             new_colostrum = Colostrum_Override(row[0], row[1], row[2])
             colostrum_override_totol_list.append(new_colostrum)
@@ -135,10 +140,10 @@ class Singleton(object):
     def compare(list_1, list_2):
 
         # First create a workbook then add a worksheet
-        workbook = xlsxwriter.Workbook('_Colotrum_Override01.xlsx')
+        workbook = xlsxwriter.Workbook('Colotrum_Override01.xlsx')
 
-        colostrum_override = workbook.add_worksheet("colostrum")
         prmMilkGeneralSettingFlat = workbook.add_worksheet("prmMilkGeneralSettingFlat")
+        colostrum_override = workbook.add_worksheet("colostrum_override")
 
         # Cell format section
         red = workbook.add_format({'bold': True, 'bg_color': 'red'})
@@ -149,6 +154,15 @@ class Singleton(object):
         bold.set_align("center")
         prmMilkGeneralSettingFlat.set_column("A:D", 21)
         prmMilkGeneralSettingFlat.set_column("E:E", 32)
+
+        # Header section of prmMilkGeneralSettingFlat WorkSheet file
+        prmMilkGeneralSettingFlat.write('A1', 'MgsAniId', bold)
+        prmMilkGeneralSettingFlat.write('B1', 'end_time', bold)
+        prmMilkGeneralSettingFlat.write('C1', 'milk_destination', bold)
+
+
+        for i in range(len(list_1)):
+            prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MgsAniId))
 
         # Header section of colostrum_override WorkSheet file
         colostrum_override.write('A1', 'cow_id', bold)
@@ -163,35 +177,35 @@ class Singleton(object):
             # Header section of prmMilkGeneralSettingFlat WorkSheet file
             prmMilkGeneralSettingFlat.write('A1', 'MgsAniId', bold)
 
-        for j in range(len(list_1)):
-            prmMilkGeneralSettingFlat.write("A{}".format(j + 2), "{}".format(list_1[j].MgsAniId))
-
         for i in range(len(list_1)):
             isEqual = False
             for j in range(len(list_2)):
 
                 if list_1[i].MgsAniId == list_2[j].cow_id:
                     isEqual = True
-                    colostrum_override.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
+                    prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
 
                     getMseEndDate = Singleton.getMseEndDate(list_2[j].cow_id)
                     if getMseEndDate != "":
                         if list_2[j].end_time != getMseEndDate:
-                            colostrum_override.write("B{}".format(i + 2), "{}".format(list2[j].end_time), red)
+                            prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), red)
                         else:
-                            colostrum_override.write("B{}".format(i + 2), "{}".format(list2[j].end_time), green)
+                            prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), green)
                     else:
-                        colostrum_override.write("B{}".format(i + 2), "{}".format(list2[j].end_time), yellow)
+                        prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), yellow)
 
                     getTreatment = Singleton.getTreatments(list_2[j].cow_id)
                     if getTreatment != None:
                         convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
                         if list2[j].milk_destination != None:
                             if list2[j].milk_destination == convertMilkDestination:
-                                colostrum_override.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
+                                prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
+                        else:
+                            prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format("NULL"),
+                                                            green)
 
                 if isEqual is False:
-                    colostrum_override.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
+                    prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
 
         while True:
             try:
