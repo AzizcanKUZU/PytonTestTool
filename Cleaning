@@ -53,8 +53,7 @@ class Singleton(object):
                    JOIN PrmMilkPostSettingFlat ppst
                    ON ha.AniId =  ppst.MpoAniId WHERE
                    HA.AniActive = 1 
-                   AND HA.AniDeleted = 0 
-                   and ha.AniLocId = 1"""
+                   AND HA.AniDeleted = 0"""
 
         for row in cursor.execute(query):
             new_prmMilkPostSettingFlat = PrmMilkPostSettingFlat(row[0], row[1], row[2])
@@ -85,7 +84,7 @@ class Singleton(object):
     def compare(list_1, list_2):
 
         # First create a workbook then add a worksheet
-        workbook = xlsxwriter.Workbook('Cleaning01.xlsx')
+        workbook = xlsxwriter.Workbook('Cleaning.xlsx')
         prmMilkPostSettingFlat = workbook.add_worksheet("PrmMilkPostSettingFlat")
         cleaning = workbook.add_worksheet("Cleaning")
 
@@ -100,22 +99,12 @@ class Singleton(object):
         prmMilkPostSettingFlat.set_column("E:E", 32)
 
         # Header section of cleaning WorkSheet file
-        prmMilkPostSettingFlat.write('A1', 'MpoAniId', bold)
-        prmMilkPostSettingFlat.write('B1', 'MpoCleanMilkEquipment', bold)
-        prmMilkPostSettingFlat.write('C1', 'AniResponderNumber', bold)
-
-        for i in range(len(list_1)):
-            prmMilkPostSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MpoAniId))
-            prmMilkPostSettingFlat.write('B{}'.format(i + 2), '{}'.format(list_1[i].MpoCleanMilkEquipment))
-            prmMilkPostSettingFlat.write('C{}'.format(i + 2), '{}'.format(list_1[i].AniResponderNumber))
+        prmMilkPostSettingFlat.write('A1', 'cow_id', bold)
+        prmMilkPostSettingFlat.write('B1', 'cleaning_type_after_milking', bold)
 
         # Header section of prmMilkPostSettingFlat WorkSheet file
         cleaning.write('A1', 'cow_id', bold)
         cleaning.write('B1', 'cleaning_type_after_milking', bold)
-
-        for i in range(len(list_2)):
-            cleaning.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id))
-            cleaning.write("B{}".format(i + 2), "{}".format(list_2[i].cleaning_type_after_milking))
 
         for i in range(len(list1)):
             isEqual = False
