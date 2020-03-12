@@ -53,8 +53,7 @@ class Singleton(object):
                    JOIN PrmMilkGeneralSettingFlat ppst
                     ON ha.AniId =  ppst.MgsAniId WHERE
                     HA.AniActive = 1 
-                    AND HA.AniDeleted = 0 
-                    and ha.AniLocId = 10"""
+                    AND HA.AniDeleted = 0"""
         for row in cursor.execute(query):
             new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0])
             prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
@@ -92,23 +91,24 @@ class Singleton(object):
     def getTreatments(aniId):
         cursor = Singleton.connection()
         params = (aniId, aniId, aniId)
-        query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName FROM [HemDiagnoses] H WITH (NOLOCK)
+        query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName
+                FROM [HemDiagnoses] H WITH (NOLOCK)
                 INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
                 INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
     			INNER JOIN LimSettingEnum ON MseSenId = SenId
-                WHERE S.MseAniId =? AND 
-    				 --GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-                    --AND
-					S.MseEndNow = 0
-    			UNION
+                WHERE S.MseAniId = ? AND
+    				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    AND S.MseEndNow = 0
+
+    			UNION 
+
     			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
-                FROM PrmMilkSeparation S
+                FROM PrmMilkSeparation S 
     			INNER JOIN LimSettingEnum ON MseSenId = SenId
-                WHERE S.MseAniId =? AND
-    				--GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
-                    --AND 
-					S.MseEndNow = 0
-                    AND MseId NOT IN
+                WHERE S.MseAniId =? AND 
+    				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    AND S.MseEndNow = 0
+                    AND MseId NOT IN 
     				(
     					SELECT MseId
     					FROM [HemDiagnoses] H WITH (NOLOCK)
@@ -117,12 +117,17 @@ class Singleton(object):
     					INNER JOIN LimSettingEnum ON MseSenId = SenId
     					WHERE
                             S.MseAniId =? AND
-    						GETDATE() BETWEEN 
-							S.MseStartDate AND S.MseEndDate
-    						AND S.MseEndNow = 0)"""
+    						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+    						AND S.MseEndNow = 0
+    				)"""
+
         cursor.execute(query, params)
         row = cursor.fetchone()
-        return row[4]
+
+        if row != None:
+            return row[4]
+        else:
+            return None
 
     @staticmethod
     def convertMilkDestination(milkDestination):
@@ -140,7 +145,7 @@ class Singleton(object):
     def compare(list_1, list_2):
 
         # First create a workbook then add a worksheet
-        workbook = xlsxwriter.Workbook('Colotrum_Override01.xlsx')
+        workbook = xlsxwriter.Workbook('Colotrum_Override.xlsx')
 
         prmMilkGeneralSettingFlat = workbook.add_worksheet("prmMilkGeneralSettingFlat")
         colostrum_override = workbook.add_worksheet("colostrum_override")
@@ -156,26 +161,14 @@ class Singleton(object):
         prmMilkGeneralSettingFlat.set_column("E:E", 32)
 
         # Header section of prmMilkGeneralSettingFlat WorkSheet file
-        prmMilkGeneralSettingFlat.write('A1', 'MgsAniId', bold)
+        prmMilkGeneralSettingFlat.write('A1', 'cow_id', bold)
         prmMilkGeneralSettingFlat.write('B1', 'end_time', bold)
         prmMilkGeneralSettingFlat.write('C1', 'milk_destination', bold)
-
-
-        for i in range(len(list_1)):
-            prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MgsAniId))
 
         # Header section of colostrum_override WorkSheet file
         colostrum_override.write('A1', 'cow_id', bold)
         colostrum_override.write('B1', 'end_time', bold)
         colostrum_override.write('C1', 'milk_destination', bold)
-
-        for i in range(len(list_2)):
-            colostrum_override.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id))
-            colostrum_override.write("B{}".format(i + 2), "{}".format(list_2[i].end_time))
-            colostrum_override.write("C{}".format(i + 2), "{}".format(list_2[i].milk_destination))
-
-            # Header section of prmMilkGeneralSettingFlat WorkSheet file
-            prmMilkGeneralSettingFlat.write('A1', 'MgsAniId', bold)
 
         for i in range(len(list_1)):
             isEqual = False
@@ -200,9 +193,6 @@ class Singleton(object):
                         if list2[j].milk_destination != None:
                             if list2[j].milk_destination == convertMilkDestination:
                                 prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
-                        else:
-                            prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format("NULL"),
-                                                            green)
 
                 if isEqual is False:
                     prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
