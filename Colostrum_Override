@@ -3,6 +3,7 @@ import xlsxwriter
 from xlsxwriter import exceptions
 from datetime import datetime
 import time
+from datetime import timedelta, date
 
 colostrum_override_totol_list = list()
 prmMilkGeneralSettingFlat_total_list = list()
@@ -12,8 +13,9 @@ server = "TUR-TRI-L082"
 database = "Lely_Baan"
 
 class PrmMilkGeneralSettingFlat(object):
-    def __init__(self, MgsAniId):
+    def __init__(self, MgsAniId, MgsColostrum):
         self.MgsAniId = MgsAniId
+        self.MgsColostrum = MgsColostrum
 
 class Colostrum_Override(object):
     def __init__(self, cow_id, end_time, milk_destination):
@@ -49,13 +51,13 @@ class Singleton(object):
     @staticmethod
     def prmMilkGeneralSettingFlat_query():
         cursor = Singleton.connection()
-        query = """SELECT ppst.MgsAniId, MgsColostrum   FROM HemAnimal ha
+        query = """SELECT ppst.MgsAniId, ppst.MgsColostrum   FROM HemAnimal ha
                    JOIN PrmMilkGeneralSettingFlat ppst
                     ON ha.AniId =  ppst.MgsAniId WHERE
                     HA.AniActive = 1 
                     AND HA.AniDeleted = 0"""
         for row in cursor.execute(query):
-            new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0])
+            new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0], row[1])
             prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
         return prmMilkGeneralSettingFlat_total_list
 
@@ -67,6 +69,24 @@ class Singleton(object):
             new_colostrum = Colostrum_Override(row[0], row[1], row[2])
             colostrum_override_totol_list.append(new_colostrum)
         return colostrum_override_totol_list
+
+
+    @staticmethod
+    def lactationDate(aniId, MgsColostrum):
+        cursor = Singleton.connection()
+        query = "select top 1 LacColostrumDate from RemLactation \
+			    where LacAniId =? \
+			    order by LacCalvingDate desc"
+
+        cursor.execute(query, aniId)
+        result = cursor.fetchone()
+        if result != None:
+            for row in result:
+                date_time = row + timedelta(days=MgsColostrum)
+                end_date = date_time.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            end_date = ""
+        return end_date
 
     @staticmethod
     def getMseEndDate(aniId):
@@ -170,29 +190,39 @@ class Singleton(object):
         colostrum_override.write('B1', 'end_time', bold)
         colostrum_override.write('C1', 'milk_destination', bold)
 
+
+
+
         for i in range(len(list_1)):
             isEqual = False
             for j in range(len(list_2)):
 
-                if list_1[i].MgsAniId == list_2[j].cow_id:
-                    isEqual = True
-                    prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
+                colostrumDate = Singleton.getMseEndDate(list_1[i].MgsAniId)
+                if colostrumDate != "":
 
-                    getMseEndDate = Singleton.getMseEndDate(list_2[j].cow_id)
-                    if getMseEndDate != "":
-                        if list_2[j].end_time != getMseEndDate:
-                            prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), red)
-                        else:
-                            prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), green)
-                    else:
-                        prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), yellow)
+                    lactationDate = Singleton.lactationDate(list_1[i].MgsAniId, list_1[i].MgsColostrum)
 
-                    getTreatment = Singleton.getTreatments(list_2[j].cow_id)
-                    if getTreatment != None:
-                        convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
-                        if list2[j].milk_destination != None:
-                            if list2[j].milk_destination == convertMilkDestination:
-                                prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
+                    if colostrumDate != lactationDate:
+
+                        if list_1[i].MgsAniId == list_2[j].cow_id:
+                            isEqual = True
+                            prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
+
+                            getMseEndDate = Singleton.getMseEndDate(list_2[j].cow_id)
+                            if getMseEndDate != "":
+                                if list_2[j].end_time != getMseEndDate:
+                                    prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), red)
+                                else:
+                                    prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), green)
+                            else:
+                                prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), yellow)
+
+                            getTreatment = Singleton.getTreatments(list_2[j].cow_id)
+                            if getTreatment != None:
+                                convertMilkDestination = Singleton.convertMilkDestination(getTreatment)
+                                if list2[j].milk_destination != None:
+                                    if list2[j].milk_destination == convertMilkDestination:
+                                        prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
 
                 if isEqual is False:
                     prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
