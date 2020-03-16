@@ -1,0 +1,107 @@
+import config
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+
+Connection = config.Singleton()
+
+PrmMilkGeneralSettingFlat_total_list = list()
+cow_teats_total_list = list()
+
+class CowTeats(object):
+    def __init__(self, cow_id, reset_teat_coordinates_after_dry, teat_positions_known):
+        self.cow_id = cow_id
+        self.reset_teat_coordinates_after_dry = reset_teat_coordinates_after_dry
+        self.teat_positions_known = teat_positions_known
+
+class PrmMilkGeneralSettingFlat(object):
+    def __init__(self, MgsAniId, MgsTeatPositionsKnown):
+        self.MgsAniId = MgsAniId
+        self.MgsTeatPositionsKnown = MgsTeatPositionsKnown
+
+class QueryList(object):
+
+    @staticmethod
+    def prmMilkPostSettingFlat_query():
+        cursor = Connection.connection()
+        query = """SELECT pmgs.MgsAniId , pmgs.MgsTeatPositionsKnown FROM HemAnimal ha
+                   JOIN PrmMilkGeneralSettingFlat pmgs
+                   ON ha.AniId =  pmgs.MgsAniId WHERE
+                   HA.AniActive = 1 
+                   AND HA.AniDeleted = 0
+                   order by pmgs.MgsId asc"""
+
+        for row in cursor.execute(query):
+            new_prmMilkGeneralSettingFlat = PrmMilkGeneralSettingFlat(row[0], row[1])
+            PrmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
+        return PrmMilkGeneralSettingFlat_total_list
+
+    @staticmethod
+    def cowTeats_query():
+        cursor = Connection.connection()
+        query = """select cow_id, reset_teat_coordinates_after_dry , teat_positions_known 
+                    from cow_teats order by cow_id asc"""
+
+        for row in cursor.execute(query):
+            new_cowTeats = CowTeats(row[0], row[1], row[2])
+            cow_teats_total_list.append(new_cowTeats)
+        return cow_teats_total_list
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('cowTeat.xlsx')
+
+        PrmMilkGeneralSettingFlat = workbook.add_worksheet("prmMilkGeneralSettingFlat")
+        cowteat = workbook.add_worksheet("cowteats")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # Header section of PrmMilkGeneralSettingFlat WorkSheet file
+        PrmMilkGeneralSettingFlat.write('A1', 'cow_id', bold)
+        PrmMilkGeneralSettingFlat.write('B1', 'reset_teat_coordinates_after_dry', bold)
+        PrmMilkGeneralSettingFlat.write('C1', 'teat_positions_known', bold)
+
+        for i in range(len(list_1)):
+            isEqual = False
+            for j in range(len(list_2)):
+                if list_1[i].MgsAniId == list_2[j].cow_id:
+                    isEqual = True
+                    PrmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list_1[i].MgsAniId), green)
+
+                    if list_1[i].MgsTeatPositionsKnown == list_2[j].reset_teat_coordinates_after_dry:
+                        PrmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list_1[j].MgsTeatPositionsKnown), green)
+                    else:
+                        PrmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list_1[j].MgsTeatPositionsKnown), red)
+
+                    if list_1[i].MgsTeatPositionsKnown == list_2[j].teat_positions_known:
+                        PrmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list_1[j].MgsTeatPositionsKnown), green)
+                    else:
+                        PrmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list_1[j].MgsTeatPositionsKnown), red)
+
+                if isEqual is False:
+                    PrmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    Connection.connection()
+    list1 = QueryList.prmMilkPostSettingFlat_query()
+    list2 = QueryList.cowTeats_query()
+    QueryList.compare(list1, list2)
