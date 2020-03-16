@@ -1,0 +1,111 @@
+import config
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+from datetime import timedelta, date
+
+Connection = config.Singleton()
+
+remLactation_total_list = list()
+last_calvin_total_list = list()
+
+class Last_Calving(object):
+    def __init__(self, cow_id, time):
+        self.cow_id = cow_id
+        self.time = time
+
+class RemLactation(object):
+    def __init__(self, LacAniId, LacCalvingDate):
+        self.LacAniId = LacAniId
+        self.LacCalvingDate = LacCalvingDate
+
+
+class QueryList(object):
+
+    @staticmethod
+    def remLactation_query():
+        cursor = Connection.connection()
+        query = """select LacAniId , LacCalvingDate 
+                    from RemLactation order by LacAniId asc"""
+
+        for row in cursor.execute(query):
+            new_remLactation = RemLactation(row[0], row[1])
+            remLactation_total_list.append(new_remLactation)
+        return remLactation_total_list
+
+    @staticmethod
+    def lastCalving_query():
+        cursor = Connection.connection()
+        query = """select * from last_calving order by cow_id asc"""
+
+        for row in cursor.execute(query):
+            new_last_calving = Last_Calving(row[0], row[1])
+            last_calvin_total_list.append(new_last_calving)
+        return last_calvin_total_list
+
+    @staticmethod
+    def lactationDate(aniId):
+        cursor = Connection.connection()
+        query = "select top 1 LacCalvingDate from RemLactation \
+    			    where LacAniId =? \
+    			    order by LacCalvingDate desc"
+
+        cursor.execute(query, aniId)
+        result = cursor.fetchone()
+        if result != None:
+            for row in result:
+                end_date = row.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            end_date = ""
+        return end_date
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('LastCalving.xlsx')
+
+        RemLactation = workbook.add_worksheet("RemLactation")
+        LastCalving = workbook.add_worksheet("LastCalving")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # Header section of PrmMilkGeneralSettingFlat WorkSheet file
+        RemLactation.write('A1', 'LacAniId', bold)
+        RemLactation.write('B1', 'LacCalvingDate', bold)
+
+        for i in range(len(list_2)):
+            isEqual = False
+
+            lactationDate = QueryList.lactationDate(list_2[i].cow_id)
+            if lactationDate != "":
+                if list_2[i].time == lactationDate:
+                    isEqual = True
+                    RemLactation.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id), green)
+                    RemLactation.write("B{}".format(i + 2), "{}".format(list_2[i].time), green)
+
+                if isEqual is False:
+                    RemLactation.write("A{}".format(i + 2), "{}".format(list1[i].cow_id), red)
+                    RemLactation.write("B{}".format(i + 2), "{}".format(list_2[i].time), red)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+if __name__ == "__main__":
+    Connection.connection()
+    list1 = QueryList.remLactation_query()
+    list2 = QueryList.lastCalving_query()
+    QueryList.compare(list1, list2)
