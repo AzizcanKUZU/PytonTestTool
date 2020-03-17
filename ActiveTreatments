@@ -1,0 +1,115 @@
+import _queries
+import xlsxwriter
+from xlsxwriter import exceptions
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('ActiveTreatmentComparisontest.xlsx')
+        t4c_active_treatments = workbook.add_worksheet("T4CActiveTreatments")
+        active_treatments = workbook.add_worksheet("ActiveTreatments")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+
+        # Header font style centered and bold
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # set column width for better look
+        t4c_active_treatments.set_column("A:E", 19)
+        active_treatments.set_column("A:E", 19)
+
+        # Header section of T4C Active Treatments WorkSheet file
+
+        t4c_active_treatments.write('A1', 'MseAniId', bold)
+        t4c_active_treatments.write('B1', 'MseId', bold)
+        t4c_active_treatments.write('C1', 'DisName', bold)
+        t4c_active_treatments.write('D1', 'MseEndDate', bold)
+        t4c_active_treatments.write('E1', 'SenName', bold)
+
+        def switch_demo(argument):
+            switcher = {
+                "Milktank 1": "MILK_LINE_1",
+                "Milktank 2": "MILK_LINE_2",
+                "M4Use": "M4USE",
+                "Bucket": "BUCKET",
+                "Sewer": "SEWER",
+                "Calf Milk Line": "CALF_MILK_LINE",
+            }
+            return switcher.get(argument, "Invalid destination")
+
+        for i in range(len(list_1)):
+            list_1[i].SenName = switch_demo(list_1[i].SenName)
+
+        for i in range(len(list_1)):
+            list_1[i].MseEndDate = list_1[i].MseEndDate.isoformat("T")
+
+        # Where the excel sheet filled with SQL Data
+        for i in range(len(list_1)):
+            t4c_active_treatments.write("A{}".format(i + 2), "{}".format(list_1[i].MseAniId))
+            t4c_active_treatments.write('B{}'.format(i + 2), '{}'.format(list_1[i].MseId))
+            t4c_active_treatments.write("C{}".format(i + 2), "{}".format(list_1[i].DisName))
+            t4c_active_treatments.write('D{}'.format(i + 2), '{}'.format(list_1[i].MseEndDate))
+            t4c_active_treatments.write('E{}'.format(i + 2), '{}'.format(list_1[i].SenName))
+
+        # Header section of active_treatments WorkSheet file
+        active_treatments.write('A1', 'cow_id', bold)
+        active_treatments.write('B1', 'treatment_id', bold)
+        active_treatments.write('C1', 'name', bold)
+        active_treatments.write('D1', 'end_time', bold)
+        active_treatments.write('E1', 'destination', bold)
+
+        # Where the excel sheet filled with SQL Data
+        for i in range(len(list_2)):
+            active_treatments.write("A{}".format(i + 2), "{}".format(list_2[i].cow_id))
+            active_treatments.write("B{}".format(i + 2), "{}".format(list_2[i].treatment_id))
+            active_treatments.write("C{}".format(i + 2), "{}".format(list_2[i].name))
+            active_treatments.write("D{}".format(i + 2), "{}".format(list_2[i].end_time))
+            active_treatments.write("E{}".format(i + 2), "{}".format(list_2[i].destination))
+
+        for i in range(len(list_1)):
+            is_equal = False
+            for j in range(len(list_2)):
+                if list_1[i].MseId == list_2[j].treatment_id:
+                    is_equal = True
+                    t4c_active_treatments.write("B{}".format(i + 2), "{}".format(list_1[i].MseId), green)
+                    t4c_active_treatments.write("C{}".format(i + 2), "{}".format(list_1[i].DisName), green)
+
+                    if list_1[i].DisName != list_2[j].name:
+                        #t4c_active_treatments.write("A{}".format(i + 2), "{}".format(list_1[i].MseAniId), red)
+                        #t4c_active_treatments.write("B{}".format(i + 2), "{}".format(list_1[i].MseId), red)
+                        t4c_active_treatments.write("C{}".format(i + 2), "{}".format(list_1[i].DisName), red)
+                        #t4c_active_treatments.write("D{}".format(i + 2), "{}".format(list_1[i].MseEndDate), red)
+                        #t4c_active_treatments.write("E{}".format(i + 2), "{}".format(list_1[i].SenName), red)
+
+                if is_equal is True:
+                    t4c_active_treatments.write("A{}".format(i + 2), "{}".format(list_1[i].MseAniId), green)
+
+                if is_equal is True:
+                    t4c_active_treatments.write("E{}".format(i + 2), "{}".format(list_1[i].SenName), green)
+
+                if is_equal is True:
+                    t4c_active_treatments.write("D{}".format(i + 2), "{}".format(list_1[i].MseEndDate), green)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    list1 = _queries.ActiveTreatments.t4c_active_treatments_query()
+    list2 = _queries.ActiveTreatments.active_treatments_query()
+    Singleton.compare(list1, list2)
