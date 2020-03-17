@@ -1,0 +1,98 @@
+
+#cowTeat
+class CowTeats(object):
+    def __init__(self, cow_id, reset_teat_coordinates_after_dry, teat_positions_known):
+        self.cow_id = cow_id
+        self.reset_teat_coordinates_after_dry = reset_teat_coordinates_after_dry
+        self.teat_positions_known = teat_positions_known
+
+class PrmMilkGeneralSettingFlat(object):
+    def __init__(self, MgsAniId, MgsTeatPositionsKnown):
+        self.MgsAniId = MgsAniId
+        self.MgsTeatPositionsKnown = MgsTeatPositionsKnown
+
+
+
+#lastCalving
+class Last_Calving(object):
+    def __init__(self, cow_id, time):
+        self.cow_id = cow_id
+        self.time = time
+
+class RemLactation(object):
+    def __init__(self, LacAniId, LacCalvingDate):
+        self.LacAniId = LacAniId
+        self.LacCalvingDate = LacCalvingDate
+
+
+
+#colostrumOverride
+class PrmMilkGeneralSettingFlat(object):
+    def __init__(self, MgsAniId, MgsColostrum):
+        self.MgsAniId = MgsAniId
+        self.MgsColostrum = MgsColostrum
+
+class Colostrum_Override(object):
+    def __init__(self, cow_id, end_time, milk_destination):
+        self.cow_id = cow_id
+        self.end_time = end_time
+        self.milk_destination = milk_destination
+
+
+
+#colostrum
+class PrmMilkGeneralSettingFlat(object):
+    def __init__(self, MgsAniId, MgsColostrum):
+        self.MgsAniId = MgsAniId
+        self.MgsColostrum = MgsColostrum
+
+class Colostrum(object):
+    def __init__(self, cow_id, expected_duration, milk_destination):
+        self.cow_id = cow_id
+        self.expected_duration = expected_duration
+        self.milk_destination = milk_destination
+
+#cleaning
+class Cleaning(object):
+    def __init__(self, cow_id, cleaning_type_after_milking):
+        self.cow_id = cow_id
+        self.cleaning_type_after_milking = cleaning_type_after_milking
+
+class PrmMilkPostSettingFlat(object):
+    def __init__(self, MpoAniId, MpoCleanMilkEquipment, AniResponderNumber):
+        self.MpoAniId = MpoAniId
+        self.MpoCleanMilkEquipment = MpoCleanMilkEquipment
+        self.AniResponderNumber = AniResponderNumber
+
+
+#Animal
+class AnimalInformation(object):
+    def __init__(self, animal_id, animal_number, animal_name):
+        self.animal_id = animal_id
+        self.animal_number = animal_number
+        self.animal_name = animal_name
+
+class HemAnimal(object):
+    def __init__(self, AniId, AniName, AniUserNumber, AniResponderNumber):
+        self.AniId = AniId
+        self.AniName = AniName
+        self.AniUserNumber = AniUserNumber
+        self.AniResponderNumber = AniResponderNumber
+
+
+#ActiveTreatments
+class T4CActiveTreatments(object):
+    def __init__(self, DisName, MseId, MseAniId, MseEndDate, SenName):
+        self.DisName = DisName
+        self.MseId = MseId
+        self.MseAniId = MseAniId
+        self.MseEndDate = MseEndDate
+        self.SenName = SenName
+
+class ActiveTreatments(object):
+    def __init__(self, cow_id, treatment_id, name, end_time, destination):
+        self.cow_id = cow_id
+        self.treatment_id = treatment_id
+        self.name = name
+        self.end_time = end_time
+        self.destination = destination
