@@ -1,0 +1,44 @@
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+
+driver = "{SQL SERVER}"
+server = "TUR-TRI-L082"
+database = "Lely_Baan"
+
+class Singleton(object):
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if Singleton.__instance is None:
+            Singleton()
+        return Singleton.__instance
+
+    def __init__(self):
+        if Singleton.__instance is not None:
+            raise Exception("This class is a Singleton")
+        else:
+            Singleton.__instance = self
+
+    @staticmethod
+    def connection():
+        try:
+            connection = pyodbc.connect(driver=driver, server=server, database=database, trusted_connection="yes")
+            cursor = connection.cursor()
+            return cursor
+        except Exception as e:
+            print(e)
+            connection.close()
+
+
+
+
+
+
+
+
+
+
+
+
