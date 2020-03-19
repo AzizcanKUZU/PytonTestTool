@@ -1,98 +1,422 @@
+import _config
+import _classes
+import time
+from datetime import timedelta, date
+Connection = _config.Singleton()
 
-#cowTeat
-class CowTeats(object):
-    def __init__(self, cow_id, reset_teat_coordinates_after_dry, teat_positions_known):
-        self.cow_id = cow_id
-        self.reset_teat_coordinates_after_dry = reset_teat_coordinates_after_dry
-        self.teat_positions_known = teat_positions_known
-
-class PrmMilkGeneralSettingFlat(object):
-    def __init__(self, MgsAniId, MgsTeatPositionsKnown):
-        self.MgsAniId = MgsAniId
-        self.MgsTeatPositionsKnown = MgsTeatPositionsKnown
-
-
+#CowTeat
+PrmMilkGeneralSettingFlat_total_list = list()
+cow_teats_total_list = list()
 
 #lastCalving
-class Last_Calving(object):
-    def __init__(self, cow_id, time):
-        self.cow_id = cow_id
-        self.time = time
-
-class RemLactation(object):
-    def __init__(self, LacAniId, LacCalvingDate):
-        self.LacAniId = LacAniId
-        self.LacCalvingDate = LacCalvingDate
-
-
+remLactation_total_list = list()
+last_calvin_total_list = list()
 
 #colostrumOverride
-class PrmMilkGeneralSettingFlat(object):
-    def __init__(self, MgsAniId, MgsColostrum):
-        self.MgsAniId = MgsAniId
-        self.MgsColostrum = MgsColostrum
-
-class Colostrum_Override(object):
-    def __init__(self, cow_id, end_time, milk_destination):
-        self.cow_id = cow_id
-        self.end_time = end_time
-        self.milk_destination = milk_destination
-
-
+colostrum_override_totol_list = list()
+prmMilkGeneralSettingFlat_total_list = list()
 
 #colostrum
-class PrmMilkGeneralSettingFlat(object):
-    def __init__(self, MgsAniId, MgsColostrum):
-        self.MgsAniId = MgsAniId
-        self.MgsColostrum = MgsColostrum
+colostrum_totol_list = list()
+prmMilkGeneralSettingFlat_total_list = list()
+colotrumTreatment_total_list = list()
 
-class Colostrum(object):
-    def __init__(self, cow_id, expected_duration, milk_destination):
-        self.cow_id = cow_id
-        self.expected_duration = expected_duration
-        self.milk_destination = milk_destination
 
 #cleaning
-class Cleaning(object):
-    def __init__(self, cow_id, cleaning_type_after_milking):
-        self.cow_id = cow_id
-        self.cleaning_type_after_milking = cleaning_type_after_milking
-
-class PrmMilkPostSettingFlat(object):
-    def __init__(self, MpoAniId, MpoCleanMilkEquipment, AniResponderNumber):
-        self.MpoAniId = MpoAniId
-        self.MpoCleanMilkEquipment = MpoCleanMilkEquipment
-        self.AniResponderNumber = AniResponderNumber
-
+cleaning_total_list = list()
+prmMilkPostSettingFlat_total_list = list()
 
 #Animal
-class AnimalInformation(object):
-    def __init__(self, animal_id, animal_number, animal_name):
-        self.animal_id = animal_id
-        self.animal_number = animal_number
-        self.animal_name = animal_name
-
-class HemAnimal(object):
-    def __init__(self, AniId, AniName, AniUserNumber, AniResponderNumber):
-        self.AniId = AniId
-        self.AniName = AniName
-        self.AniUserNumber = AniUserNumber
-        self.AniResponderNumber = AniResponderNumber
-
+hemAnimalTotalList = list()
+animal_information_total_list = list()
 
 #ActiveTreatments
-class T4CActiveTreatments(object):
-    def __init__(self, DisName, MseId, MseAniId, MseEndDate, SenName):
-        self.DisName = DisName
-        self.MseId = MseId
-        self.MseAniId = MseAniId
-        self.MseEndDate = MseEndDate
-        self.SenName = SenName
+active_treatments_total_list = list()
+T4CActiveTreatments_total_list = list()
+
+#AttentionSettings
+milking_attention_settings_total_list = list()
+
+
+class CowTeatQueryList(object):
+
+    # CowTeat
+    @staticmethod
+    def prmMilkPostSettingFlat_query():
+        cursor = Connection.connection()
+        query = """SELECT pmgs.MgsAniId , pmgs.MgsTeatPositionsKnown FROM HemAnimal ha
+                      JOIN PrmMilkGeneralSettingFlat pmgs
+                      ON ha.AniId =  pmgs.MgsAniId WHERE
+                      HA.AniActive = 1 
+                      AND HA.AniDeleted = 0
+                      order by pmgs.MgsId asc"""
+
+        for row in cursor.execute(query):
+            new_prmMilkGeneralSettingFlat = _classes.CowTeatPrmMilkGeneralSettingFlat(row[0], row[1])
+            PrmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
+        return PrmMilkGeneralSettingFlat_total_list
+
+    @staticmethod
+    def cowTeats_query():
+        cursor = Connection.connection()
+        query = """select cow_id, reset_teat_coordinates_after_dry , teat_positions_known 
+                       from cow_teats order by cow_id asc"""
+
+        for row in cursor.execute(query):
+            new_cowTeats = _classes.CowTeats(row[0], row[1], row[2])
+            cow_teats_total_list.append(new_cowTeats)
+        return cow_teats_total_list
+
+
+class LastCalvingQueryList(object):
+
+    # lastCalving
+    @staticmethod
+    def remLactation_query():
+        cursor = Connection.connection()
+        query = """select LacAniId , LacCalvingDate 
+                        from RemLactation order by LacAniId asc"""
+
+        for row in cursor.execute(query):
+            new_remLactation = _classes.RemLactation(row[0], row[1])
+            remLactation_total_list.append(new_remLactation)
+        return remLactation_total_list
+
+    # lastCalving
+    @staticmethod
+    def lastCalving_query():
+        cursor = Connection.connection()
+        query = """select * from last_calving order by cow_id asc"""
+
+        for row in cursor.execute(query):
+            new_last_calving = _classes.Last_Calving(row[0], row[1])
+            last_calvin_total_list.append(new_last_calving)
+        return last_calvin_total_list
+
+    # lastCalving
+    @staticmethod
+    def lactationDate(aniId):
+        cursor = Connection.connection()
+        query = "select top 1 LacCalvingDate from RemLactation \
+        			    where LacAniId =? \
+        			    order by LacCalvingDate desc"
+
+        cursor.execute(query, aniId)
+        result = cursor.fetchone()
+        if result != None:
+            for row in result:
+                end_date = row.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            end_date = ""
+        return end_date
+
+
+class ColostrumOverrideQueryList(object):
+    # colostrumOverride
+    @staticmethod
+    def prmMilkGeneralSettingFlat_query():
+        cursor = Connection.connection()
+        query = """SELECT ppst.MgsAniId, ppst.MgsColostrum   FROM HemAnimal ha
+                       JOIN PrmMilkGeneralSettingFlat ppst
+                        ON ha.AniId =  ppst.MgsAniId WHERE
+                        HA.AniActive = 1 
+                        AND HA.AniDeleted = 0"""
+        for row in cursor.execute(query):
+            new_prmMilkGeneralSettingFlat = _classes.PrmMilkGeneralSettingFlat(row[0], row[1])
+            prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
+        return prmMilkGeneralSettingFlat_total_list
+
+    @staticmethod
+    def colostrum_override_query():
+        cursor = Connection.connection()
+        query = "select * from colostrum_override order by cow_id asc"
+        for row in cursor.execute(query):
+            new_colostrum = _classes.Colostrum_Override(row[0], row[1], row[2])
+            colostrum_override_totol_list.append(new_colostrum)
+        return colostrum_override_totol_list
+
+    @staticmethod
+    def lactationDate(aniId, MgsColostrum):
+        cursor = Connection.connection()
+        query = "select top 1 LacColostrumDate from RemLactation \
+    			    where LacAniId =? \
+    			    order by LacCalvingDate desc"
+
+        cursor.execute(query, aniId)
+        result = cursor.fetchone()
+        if result != None:
+            for row in result:
+                date_time = row + timedelta(days=MgsColostrum)
+                end_date = date_time.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            end_date = ""
+        return end_date
+
+    @staticmethod
+    def getMseEndDate(aniId):
+        cursor = Connection.connection()
+        query = "SELECT TOP 1 MseEndDate\
+                  FROM PrmMilkSeparation WITH (NOLOCK)\
+                  WHERE MseStyId = 2\
+                  AND MseEndNow = 0\
+                  AND MseAniId = ?\
+                ORDER BY MseEndDate DESC"
+
+        cursor.execute(query, aniId)
+        result = cursor.fetchone()
+        if result != None:
+            for row in result:
+                date_time = row.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            date_time = ""
+        return date_time
+
+    @staticmethod
+    def getTreatments(aniId):
+        cursor = Connection.connection()
+        params = (aniId, aniId, aniId)
+        query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName
+                   FROM [HemDiagnoses] H WITH (NOLOCK)
+                   INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+                   INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+       			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                   WHERE S.MseAniId = ? AND
+       				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                       AND S.MseEndNow = 0
+
+       			UNION 
+
+       			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
+                   FROM PrmMilkSeparation S 
+       			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                   WHERE S.MseAniId =? AND 
+       				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                       AND S.MseEndNow = 0
+                       AND MseId NOT IN 
+       				(
+       					SELECT MseId
+       					FROM [HemDiagnoses] H WITH (NOLOCK)
+       					INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+       					INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+       					INNER JOIN LimSettingEnum ON MseSenId = SenId
+       					WHERE
+                               S.MseAniId =? AND
+       						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+       						AND S.MseEndNow = 0
+       				)"""
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+
+        if row != None:
+            return row[4]
+        else:
+            return None
+
+    @staticmethod
+    def convertMilkDestination(milkDestination):
+        case = {
+            "Milktank 1": "MILK_LINE_1", \
+            "Milktank 2": "MILK_LINE_2", \
+            "M4Use": "M4USE", \
+            "Bucket": "BUCKET", \
+            "Sewer": "SEWER", \
+            "Calf Milk Line": "CALF_MILK_LINE", \
+            }
+        return case.get(milkDestination, "SEWER")
+
+class ColostrumQueryList(object):
+
+    @staticmethod
+    def prmMilkGeneralSettingFlat_query():
+        cursor = Connection.connection()
+        query = """SELECT ppst.MgsAniId, MgsColostrum   FROM HemAnimal ha
+                       JOIN PrmMilkGeneralSettingFlat ppst
+                        ON ha.AniId =  ppst.MgsAniId WHERE
+                        HA.AniActive = 1 
+                        AND HA.AniDeleted = 0 order by ppst.MgsAniId asc"""
+
+        for row in cursor.execute(query):
+            new_prmMilkGeneralSettingFlat = _classes.PrmMilkGeneralSettingFlat(row[0], row[1])
+            prmMilkGeneralSettingFlat_total_list.append(new_prmMilkGeneralSettingFlat)
+        return prmMilkGeneralSettingFlat_total_list
+
+    @staticmethod
+    def colostrum_query():
+        cursor = Connection.connection()
+        query = "select * from colostrum order by cow_id asc"
+        for row in cursor.execute(query):
+            new_colostrum = _classes.Colostrum(row[0], row[1], row[2])
+            colostrum_totol_list.append(new_colostrum)
+        return colostrum_totol_list
+
+    @staticmethod
+    def getTreatments(aniId):
+        cursor = Connection.connection()
+        params = (aniId, aniId, aniId)
+        query = """SELECT LD.DisName, MseId, S.MseStartDate, S.MseEndDate, SenName
+                FROM [HemDiagnoses] H WITH (NOLOCK)
+                INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+                INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+    			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE S.MseAniId = ? AND
+    				 GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    AND S.MseEndNow = 0
+
+    			UNION 
+
+    			SELECT 'MANUAL', MseId, S.MseStartDate, S.MseEndDate, SenName
+                FROM PrmMilkSeparation S 
+    			INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE S.MseAniId =? AND 
+    				GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+                    AND S.MseEndNow = 0
+                    AND MseId NOT IN 
+    				(
+    					SELECT MseId
+    					FROM [HemDiagnoses] H WITH (NOLOCK)
+    					INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+    					INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId
+    					INNER JOIN LimSettingEnum ON MseSenId = SenId
+    					WHERE
+                            S.MseAniId =? AND
+    						GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate
+    						AND S.MseEndNow = 0
+    				)"""
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+
+        if row != None:
+            return row[4]
+        else:
+            return None
+
+    @staticmethod
+    def convertMilkDestination(milkDestination):
+        case = {
+            "Milktank 1": "MILK_LINE_1", \
+            "Milktank 2": "MILK_LINE_2", \
+            "M4Use": "M4USE", \
+            "Bucket": "BUCKET", \
+            "Sewer": "SEWER", \
+            "Calf Milk Line": "CALF_MILK_LINE", \
+            }
+
+        return case.get(milkDestination, "SEWER")
+
+class CleaningQueryList(object):
+
+    @staticmethod
+    def prmMilkPostSettingFlat_query():
+        cursor = Connection.connection()
+        query = """SELECT ppst.MpoAniId , ppst.MpoCleanMilkEquipment, ha.AniResponderNumber FROM HemAnimal ha
+                       JOIN PrmMilkPostSettingFlat ppst
+                       ON ha.AniId =  ppst.MpoAniId WHERE
+                       HA.AniActive = 1 
+                       AND HA.AniDeleted = 0"""
+
+        for row in cursor.execute(query):
+            new_prmMilkPostSettingFlat = _classes.PrmMilkPostSettingFlat(row[0], row[1], row[2])
+            prmMilkPostSettingFlat_total_list.append(new_prmMilkPostSettingFlat)
+        return prmMilkPostSettingFlat_total_list
+
+    @staticmethod
+    def cleaning_query():
+        cursor = Connection.connection()
+        query = "select * from cleaning order by cow_id asc"
+        for row in cursor.execute(query):
+            new_cleaning = _classes.Cleaning(row[0], row[1])
+            cleaning_total_list.append(new_cleaning)
+        return cleaning_total_list
+
+    @staticmethod
+    def switch(param):
+        case = {
+            0: "NONE", \
+            1: "LELY_WASH", \
+            2: "RINSING", \
+            3: "STEAM_AND_LELY_WASH", \
+            4: "STEAM_AND_RINSING", \
+            }
+        return case.get(param, "")
+
+class AnimalQueryList(object):
+
+    @staticmethod
+    def hem_animal_query():
+        cursor = Connection.connection()
+        query = "select AniId, AniName, AniUserNumber, AniResponderNumber from HemAnimal where AniActive = 1 and AniDeleted = 0 and AniLocId = 1 order by AniId asc"
+        for row in cursor.execute(query):
+            new_hem_animal = _classes.HemAnimal(row[0], row[1], row[2], row[3])
+            hemAnimalTotalList.append(new_hem_animal)
+        return hemAnimalTotalList
+
+
+    @staticmethod
+    def animal_information_query():
+        cursor = Connection.connection()
+        query = "select * from animal_information order by animal_id asc"
+        for row in cursor.execute(query):
+            new_animal_information = _classes.AnimalInformation(row[0], row[1], row[2])
+            animal_information_total_list.append(new_animal_information)
+        return animal_information_total_list
 
 class ActiveTreatments(object):
-    def __init__(self, cow_id, treatment_id, name, end_time, destination):
-        self.cow_id = cow_id
-        self.treatment_id = treatment_id
-        self.name = name
-        self.end_time = end_time
-        self.destination = destination
+    @staticmethod
+    def t4c_active_treatments_query():
+        query = """SELECT LD.DisName, MseId, S.MseAniId, S.MseEndDate, SenName
+                FROM [HemDiagnoses] H WITH (NOLOCK)
+                INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId
+                INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId 
+                INNER JOIN LimSettingEnum ON MseSenId = SenId 
+                WHERE GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate AND S.MseEndNow = 0 
+                UNION SELECT 'MANUAL', MseId, S.MseAniId, S.MseEndDate, SenName
+                FROM PrmMilkSeparation S INNER JOIN LimSettingEnum ON MseSenId = SenId
+                WHERE GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate AND S.MseEndNow = 0
+                AND MseId NOT IN ( SELECT MseId
+                FROM [HemDiagnoses] H WITH (NOLOCK)
+                INNER JOIN PrmMilkSeparation S ON S.MseId = H.DiaMseId AND S.MseAniId = H.DiaAniId 
+                INNER JOIN LimDisease LD ON H.DiaDisId = LD.DisId 
+                INNER JOIN LimSettingEnum ON MseSenId = SenId 
+                WHERE GETDATE() BETWEEN S.MseStartDate AND S.MseEndDate AND S.MseEndNow = 0)"""
+
+        for row in Connection.connection().execute(query):
+            new_active_treatments_list = _classes.T4CActiveTreatments(row[0], row[1], row[2], row[3], row[4])
+            T4CActiveTreatments_total_list.append(new_active_treatments_list)
+        return T4CActiveTreatments_total_list
+
+    @staticmethod
+    def active_treatments_query():
+        query = "select * from active_treatments"
+        for row in Connection.connection().execute(query):
+            new_animal_information = _classes.ActiveTreatments(row[0], row[1], row[2], row[3], row[4])
+            active_treatments_total_list.append(new_animal_information)
+        return active_treatments_total_list
+
+
+
+class AttentionSettings(object):
+    @staticmethod
+    def milking_attention_settings_query():
+        query = """select * from milking_attention_settings order by cow_id asc"""
+
+        for row in Connection.connection().execute(query):
+            milking_attention_settings_list = _classes.AttentionSettings(row[0], row[1], row[2], row[3], row[4], row[5],
+                                                                    row[6], row[7], row[8] )
+            milking_attention_settings_total_list.append(milking_attention_settings_list)
+        return milking_attention_settings_total_list
+
+
+    @staticmethod
+    def prmMilkAttentionSettingFlat_query(aniId):
+        query = """SELECT MatAniId , MatMaxTimeBetweenVisits , MatIntervalAttHour, MatDaysAfterCalving, MatAwayHours, MatAvgMilkingStart,MatAvgMilkingsEnd, MatAvgMilkingsMid, MatDaysPregnant  
+                   FROM PrmMilkAttentionSettingFlat WHERE MatAniId =?"""
+        cursor = Connection.connection()
+        cursor.execute(query, aniId)
+        row = cursor.fetchone()
+
+        if row != None:
+            return row
+        else:
+            return ""
