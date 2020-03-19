@@ -6,7 +6,7 @@ class CowTeats(object):
         self.reset_teat_coordinates_after_dry = reset_teat_coordinates_after_dry
         self.teat_positions_known = teat_positions_known
 
-class PrmMilkGeneralSettingFlat(object):
+class CowTeatPrmMilkGeneralSettingFlat(object):
     def __init__(self, MgsAniId, MgsTeatPositionsKnown):
         self.MgsAniId = MgsAniId
         self.MgsTeatPositionsKnown = MgsTeatPositionsKnown
@@ -96,3 +96,40 @@ class ActiveTreatments(object):
         self.name = name
         self.end_time = end_time
         self.destination = destination
+
+
+
+#AttentionSettings
+class AttentionSettings(object):
+    def __init__(self, cow_id, maximum_time_between_visits, interval_att_hour, days_after_calving, max_away_hours_end, avg_milking_start, avg_milking_end, avg_milking_mid, days_pregnant):
+        self.cow_id = cow_id
+        self.maximum_time_between_visits = maximum_time_between_visits
+        self.interval_att_hour = interval_att_hour
+        self.days_after_calving = days_after_calving
+        self.max_away_hours_end = max_away_hours_end
+        self.avg_milking_start = avg_milking_start
+        self.avg_milking_end = avg_milking_end
+        self.avg_milking_mid = avg_milking_mid
+        self.days_pregnant = days_pregnant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
