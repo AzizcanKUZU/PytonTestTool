@@ -1,0 +1,84 @@
+import _queries
+from decimal import Decimal
+import xlsxwriter
+from xlsxwriter import exceptions
+
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('AttentionSettings.xlsx')
+        MilkingAttentionSettings = workbook.add_worksheet("MilkingAttentionSettings")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        MilkingAttentionSettings.set_column("A:C", 15)
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # Header section of cleaning WorkSheet file
+        MilkingAttentionSettings.write('A1', 'cow_id', bold)
+        MilkingAttentionSettings.write('B1', 'cleaning_type_after_milking', bold)
+
+        # Header section of prmMilkPostSettingFlat WorkSheet file
+        MilkingAttentionSettings.write('A1', 'cow_id', bold)
+        MilkingAttentionSettings.write('B1', 'maximum_time_between_visits', bold)
+        MilkingAttentionSettings.write('C1', 'interval_att_hour', bold)
+        MilkingAttentionSettings.write('D1', 'days_after_calving', bold)
+        MilkingAttentionSettings.write('E1', 'max_away_hours_end', bold)
+        MilkingAttentionSettings.write('F1', 'avg_milking_start', bold)
+        MilkingAttentionSettings.write('G1', 'avg_milking_end', bold)
+        MilkingAttentionSettings.write('H1', 'avg_milking_mid', bold)
+        MilkingAttentionSettings.write('I1', 'days_pregnant', bold)
+
+        for i in range(len(list_1)):
+            isEqual = False
+            control = _queries.AttentionSettings.prmMilkAttentionSettingFlat_query(list_1[i].cow_id)
+            if control != "":
+                if list_1[i].cow_id == control.MatAniId:
+                    MilkingAttentionSettings.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+
+                if list_1[i].maximum_time_between_visits == control.MatMaxTimeBetweenVisits:
+                    MilkingAttentionSettings.write("B{}".format(i + 2), "{}".format(list_1[i].maximum_time_between_visits), green)
+
+                if list_1[i].interval_att_hour == control.MatIntervalAttHour:
+                    MilkingAttentionSettings.write("C{}".format(i + 2), "{}".format(list_1[i].interval_att_hour), green)
+
+                if list_1[i].days_after_calving == control.MatDaysAfterCalving:
+                    MilkingAttentionSettings.write("D{}".format(i + 2), "{}".format(list_1[i].days_after_calving), green)
+
+                if list_1[i].max_away_hours_end == control.MatAwayHours:
+                    MilkingAttentionSettings.write("E{}".format(i + 2), "{}".format(list_1[i].max_away_hours_end), green)
+
+                if list_1[i].avg_milking_start == control.MatAvgMilkingStart:
+                    MilkingAttentionSettings.write("F{}".format(i + 2), "{}".format(list_1[i].avg_milking_start), green)
+
+                if list_1[i].avg_milking_end == control.MatAvgMilkingsEnd:
+                    MilkingAttentionSettings.write("G{}".format(i + 2), "{}".format(list_1[i].avg_milking_end), green)
+
+                if list_1[i].avg_milking_mid == control.MatAvgMilkingsMid:
+                    MilkingAttentionSettings.write("H{}".format(i + 2), "{}".format(list_1[i].avg_milking_mid), green)
+
+                if list_1[i].days_pregnant == control.MatDaysPregnant:
+                    MilkingAttentionSettings.write("I{}".format(i + 2), "{}".format(list_1[i].days_pregnant), green)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    list1 = _queries.AttentionSettings.milking_attention_settings_query()
+    Singleton.compare(list1)
