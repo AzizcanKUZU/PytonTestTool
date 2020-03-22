@@ -1,0 +1,111 @@
+import xlsxwriter
+import _queries
+from xlsxwriter import exceptions
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('During.xlsx')
+        during = workbook.add_worksheet("during_milking")
+
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        during.set_column("A:D", 21)
+        during.set_column("E:E", 32)
+
+        # Header section of prmMilkGeneralSettingFlat WorkSheet file
+        during.write('A1', 'cow_id', bold)
+        during.write('B1', 'end_time', bold)
+        during.write('C1', 'milk_destination', bold)
+
+        # Header section of colostrum_override WorkSheet file
+        during.write('A1', 'cow_id', bold)
+        during.write('B1', 'vacuum_level', bold)
+        during.write('C1', 'pulsation_rate_lf', bold)
+        during.write('D1', 'pulsation_rate_rf', bold)
+        during.write('E1', 'pulsation_rate_lr', bold)
+        during.write('F1', 'pulsation_rate_rr', bold)
+        during.write('G1', 'milk_rest_percentage_lf', bold)
+        during.write('H1', 'milk_rest_percentage_rf', bold)
+        during.write('I1', 'milk_rest_percentage_lr', bold)
+        during.write('J1', 'milk_rest_percentage_rr', bold)
+        during.write('K1', 'custom_take_off_level_percentage', bold)
+        during.write('L1', 'custom_take_off_delay', bold)
+        during.write('M1', 'delayed_take_off_high_conductivity', bold)
+        during.write('N1', 'scc_sampling_on_milk_yield_attention', bold)
+        during.write('O1', 'vacuum_depends_on_milk_flow', bold)
+        during.write('P1', 'pulsation_depends_on_milk_flow', bold)
+
+
+
+        for i in range(len(list_1)):
+            isEqual = False
+            duringSettingsFlat = _queries.During.prmMilkDuringSettingFlat(list_1[i].cow_id)
+            if duringSettingsFlat != "":
+                isEqual = True
+                during.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+
+                if list_1[i].vacuum_level == (duringSettingsFlat.MdrVacuumLevel * 1000):
+                    during.write("B{}".format(i + 2), "{}".format(list_1[i].vacuum_level), green)
+                if list_1[i].pulsation_rate_lf == duringSettingsFlat.MdsPulsationRateLF:
+                    during.write("C{}".format(i + 2), "{}".format(list_1[i].pulsation_rate_lf), green)
+                if list_1[i].pulsation_rate_rf == duringSettingsFlat.MdsPulsationRateRF:
+                    during.write("D{}".format(i + 2), "{}".format(list_1[i].pulsation_rate_rf), green)
+                if list_1[i].pulsation_rate_lr == duringSettingsFlat.MdsPulsationRateLR:
+                    during.write("D{}".format(i + 2), "{}".format(list_1[i].pulsation_rate_lr), green)
+                if list_1[i].pulsation_rate_rr == duringSettingsFlat.MdsPulsationRateRR:
+                    during.write("E{}".format(i + 2), "{}".format(list_1[i].pulsation_rate_rr), green)
+                if list_1[i].milk_rest_percentage_lf == duringSettingsFlat.MdsMilkRestRatioLF:
+                    during.write("F{}".format(i + 2), "{}".format(list_1[i].milk_rest_percentage_lf), green)
+                if list_1[i].milk_rest_percentage_rf == duringSettingsFlat.MdsMilkRestRatioRF:
+                    during.write("G{}".format(i + 2), "{}".format(list_1[i].milk_rest_percentage_rf), green)
+                if list_1[i].milk_rest_percentage_lr == duringSettingsFlat.MdsMilkRestRatioLR:
+                    during.write("H{}".format(i + 2), "{}".format(list_1[i].milk_rest_percentage_lr), green)
+                if list_1[i].milk_rest_percentage_rr == duringSettingsFlat.MdsMilkRestRatioRR:
+                    during.write("I{}".format(i + 2), "{}".format(list_1[i].milk_rest_percentage_rr), green)
+
+                pulsation_method = _queries.During.PulsationMethod(duringSettingsFlat.MdsPulsationMethod)
+                if list_1[i].pulsation_method == pulsation_method:
+                    during.write("J{}".format(i + 2), "{}".format(list_1[i].pulsation_method), green)
+                take_off_method = _queries.During.TakeOffMethod(duringSettingsFlat.MdsTakeOff)
+                if list_1[i].take_off_method == take_off_method:
+                    during.write("K{}".format(i + 2), "{}".format(list_1[i].pulsation_method), green)
+                if list_1[i].custom_take_off_level_percentage == duringSettingsFlat.MdsCustomTakeOffLevel:
+                    during.write("L{}".format(i + 2), "{}".format(list_1[i].custom_take_off_level_percentage), green)
+                if list_1[i].custom_take_off_delay == duringSettingsFlat.MdsCustomTakeOffDelay:
+                    during.write("M{}".format(i + 2), "{}".format(list_1[i].custom_take_off_delay),green)
+                if list_1[i].scc_sampling_on_milk_yield_attention == duringSettingsFlat.MdsSCCOnMilkYieldAtt:
+                    during.write("N{}".format(i + 2), "{}".format(list_1[i].scc_sampling_on_milk_yield_attention), green)
+
+                milkPreSettingFlatRow = _queries.During.milkPreSettingFlat(list_1[i].cow_id)
+                if list_1[i].vacuum_depends_on_milk_flow == milkPreSettingFlatRow.MprVacuumDependsOnMilkflow:
+                    during.write("O{}".format(i + 2), "{}".format(list_1[i].vacuum_depends_on_milk_flow), green)
+                if list_1[i].pulsation_depends_on_milk_flow == milkPreSettingFlatRow.MprPulsDependsOnMilkflow:
+                    during.write("P{}".format(i + 2), "{}".format(list_1[i].pulsation_depends_on_milk_flow), green)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    list1 = _queries.During.during_query()
+    Singleton.compare(list1)
+
+
