@@ -566,7 +566,27 @@ class IntervalSettings(object):
         else:
             return row
 
+class LactationSettings(object):
 
+    @staticmethod
+    def lactationSettings_query():
+        query ="select * from lactation_settings order by 1 asc";
+        cursor = Connection.connection()
+        cursor.execute(query)
+        row = cursor.fetchall()
+        return row
+
+    @ staticmethod
+    def RemLactationSettingFlat(cow_id):
+        query = """select LseAniId , LseExpectedDryOff, LseExpectedCalving from RemLactationSettingFlat 
+        where LseAniId=?"""
+        cursor = Connection.connection()
+        cursor.execute(query, cow_id)
+        row = cursor.fetchone()
+        if row == None:
+            return ""
+        else:
+            return row
 
 
 
