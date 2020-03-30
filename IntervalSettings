@@ -1,0 +1,99 @@
+import _queries
+import xlsxwriter
+from xlsxwriter import exceptions
+
+
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('IntervalSettings.xlsx')
+
+        IntervalSettings = workbook.add_worksheet("IntervalSettings")
+
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # Header section of PrmMilkGeneralSettingFlat WorkSheet file
+        IntervalSettings.write('A1', 'cow_id', bold)
+        IntervalSettings.write('B1', 'priority', bold)
+        IntervalSettings.write('C1', 'optimum_yield_per_milking', bold)
+        IntervalSettings.write('D1', 'minimum_milkings_per_day', bold)
+        IntervalSettings.write('E1', 'maximum_milkings_per_day', bold)
+        IntervalSettings.write('F1', 'type', bold)
+        IntervalSettings.write('G1', 'start_day', bold)
+        IntervalSettings.write('H1', 'end_day', bold)
+
+        for i in range(len(list_1)):
+            accessSettingFlat = _queries.IntervalSettings.PrmMilkAccessSettingsFlat_query(list_1[i].cow_id)
+            if accessSettingFlat != None and list_1[i].priority == 1:
+
+                #formatCell = format(float(accessSettingFlat.MasMinExpectedYield_0), '.0g')
+                if list_1[i].optimum_yield_per_milking == accessSettingFlat.MasMinExpectedYield_0:
+
+                    IntervalSettings.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+                    IntervalSettings.write("B{}".format(i + 2), "{}".format(list_1[i].priority), green)
+                    IntervalSettings.write("F{}".format(i + 2), "{}".format(list_1[i].type), green)
+                    IntervalSettings.write("G{}".format(i + 2), "{}".format(list_1[i].start_day), green)
+                    IntervalSettings.write("C{}".format(i + 2), "{}".format(list_1[i].optimum_yield_per_milking), green)
+
+                if list_1[i].minimum_milkings_per_day == accessSettingFlat.MasMinMilkings_0:
+                    IntervalSettings.write("D{}".format(i + 2), "{}".format(list_1[i].minimum_milkings_per_day), green)
+
+                if list_1[i].maximum_milkings_per_day == accessSettingFlat.MasMaxMilkings_0:
+                    IntervalSettings.write("E{}".format(i + 2), "{}".format(list_1[i].maximum_milkings_per_day), green)
+
+                if list_1[i].end_day == accessSettingFlat.MasLactationBorder1:
+                    IntervalSettings.write("H{}".format(i + 2), "{}".format(list_1[i].end_day), green)
+
+            if accessSettingFlat != None and list_1[i].priority == 3:
+
+                if list_1[i].optimum_yield_per_milking == accessSettingFlat.MasMinExpectedYield_1:
+                    IntervalSettings.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+                    IntervalSettings.write("B{}".format(i + 2), "{}".format(list_1[i].priority), green)
+                    IntervalSettings.write("F{}".format(i + 2), "{}".format(list_1[i].type), green)
+                    IntervalSettings.write("G{}".format(i + 2), "{}".format(list_1[i].start_day), green)
+                    IntervalSettings.write("C{}".format(i + 2), "{}".format("NULL"), green)
+                    IntervalSettings.write("C{}".format(i + 2), "{}".format(list_1[i].optimum_yield_per_milking), green)
+
+                if list_1[i].minimum_milkings_per_day == accessSettingFlat.MasMinMilkings_1:
+                    IntervalSettings.write("D{}".format(i + 2), "{}".format(list_1[i].minimum_milkings_per_day), green)
+
+                if list_1[i].maximum_milkings_per_day == accessSettingFlat.MasMaxMilkings_1:
+                    IntervalSettings.write("E{}".format(i + 2), "{}".format(list_1[i].maximum_milkings_per_day), green)
+
+
+            if accessSettingFlat != None and list_1[i].priority == 2:
+                if list_1[i].optimum_yield_per_milking == accessSettingFlat.MasMinExpectedYield_2:
+                    IntervalSettings.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+                    IntervalSettings.write("B{}".format(i + 2), "{}".format(list_1[i].priority), green)
+                    IntervalSettings.write("F{}".format(i + 2), "{}".format(list_1[i].type), green)
+                    IntervalSettings.write("G{}".format(i + 2), "{}".format(list_1[i].start_day), green)
+                    IntervalSettings.write("C{}".format(i + 2), "{}".format("NULL"), green)
+                    IntervalSettings.write("C{}".format(i + 2), "{}".format(list_1[i].optimum_yield_per_milking), green)
+
+                if list_1[i].minimum_milkings_per_day == accessSettingFlat.MasMinMilkings_2:
+                    IntervalSettings.write("D{}".format(i + 2), "{}".format(list_1[i].minimum_milkings_per_day), green)
+
+                if list_1[i].maximum_milkings_per_day == accessSettingFlat.MasMaxMilkings_2:
+                    IntervalSettings.write("E{}".format(i + 2), "{}".format(list_1[i].maximum_milkings_per_day), green)
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+if __name__ == "__main__":
+    list1 = _queries.IntervalSettings.IntervalSettings_query()
+    Singleton.compare(list1)
