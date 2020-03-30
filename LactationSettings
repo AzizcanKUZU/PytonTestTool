@@ -1,0 +1,49 @@
+import _queries
+import xlsxwriter
+from xlsxwriter import exceptions
+
+
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('lactationSettings.xlsx')
+
+        lactationSettings = workbook.add_worksheet("lactationSettings")
+
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # Header section of PrmMilkGeneralSettingFlat WorkSheet file
+        lactationSettings.write('A1', 'cow_id', bold)
+        lactationSettings.write('B1', 'expected_days_to_dry_off', bold)
+        lactationSettings.write('C1', 'expected_days_to_calving', bold)
+
+        for i in range(len(list_1)):
+            remLactationSettingFlat = _queries.LactationSettings.RemLactationSettingFlat(list_1[i].cow_id)
+            if remLactationSettingFlat != None and list_1[i].cow_id == remLactationSettingFlat.LseAniId:
+                lactationSettings.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+                if list_1[i].expected_days_to_dry_off == remLactationSettingFlat.LseExpectedDryOff:
+                    lactationSettings.write("B{}".format(i + 2), "{}".format(list_1[i].expected_days_to_dry_off), green)
+                if list_1[i].expected_days_to_calving == remLactationSettingFlat.LseExpectedCalving:
+                    lactationSettings.write("C{}".format(i + 2), "{}".format(list_1[i].expected_days_to_calving), green)
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+if __name__ == "__main__":
+    list1 = _queries.LactationSettings.lactationSettings_query()
+    Singleton.compare(list1)
