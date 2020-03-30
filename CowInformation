@@ -1,0 +1,85 @@
+import _queries
+import xlsxwriter
+from xlsxwriter import exceptions
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1, list_2):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('Colotrum_Override.xlsx')
+
+        prmMilkGeneralSettingFlat = workbook.add_worksheet("prmMilkGeneralSettingFlat")
+        colostrum_override = workbook.add_worksheet("colostrum_override")
+
+        # Cell format section
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        colostrum_override.set_column("A:C", 15)
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+        prmMilkGeneralSettingFlat.set_column("A:D", 21)
+        prmMilkGeneralSettingFlat.set_column("E:E", 32)
+
+        # Header section of prmMilkGeneralSettingFlat WorkSheet file
+        prmMilkGeneralSettingFlat.write('A1', 'cow_id', bold)
+        prmMilkGeneralSettingFlat.write('B1', 'end_time', bold)
+        prmMilkGeneralSettingFlat.write('C1', 'milk_destination', bold)
+
+        # Header section of colostrum_override WorkSheet file
+        colostrum_override.write('A1', 'cow_id', bold)
+        colostrum_override.write('B1', 'end_time', bold)
+        colostrum_override.write('C1', 'milk_destination', bold)
+
+        for i in range(len(list_1)):
+            isEqual = False
+            for j in range(len(list_2)):
+
+                colostrumDate = _queries.ColostrumOverrideQueryList.getMseEndDate(list_1[i].MgsAniId)
+                if colostrumDate != "":
+
+                    lactationDate = _queries.ColostrumOverrideQueryList.lactationDate(list_1[i].MgsAniId, list_1[i].MgsColostrum)
+
+                    if colostrumDate != lactationDate:
+
+                        if list_1[i].MgsAniId == list_2[j].cow_id:
+                            isEqual = True
+                            prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), green)
+
+                            getMseEndDate = _queries.ColostrumOverrideQueryList.getMseEndDate(list_2[j].cow_id)
+                            if getMseEndDate != "":
+                                if list_2[j].end_time != getMseEndDate:
+                                    prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), red)
+                                else:
+                                    prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), green)
+                            else:
+                                prmMilkGeneralSettingFlat.write("B{}".format(i + 2), "{}".format(list2[j].end_time), yellow)
+
+                            getTreatment = _queries.ColostrumOverrideQueryList.getTreatments(list_2[j].cow_id)
+                            if getTreatment != None:
+                                convertMilkDestination = _queries.ColostrumOverrideQueryList.convertMilkDestination(getTreatment)
+                                if list2[j].milk_destination != None:
+                                    if list2[j].milk_destination == convertMilkDestination:
+                                        prmMilkGeneralSettingFlat.write("C{}".format(i + 2), "{}".format(list2[j].milk_destination), green)
+
+                if isEqual is False:
+                    prmMilkGeneralSettingFlat.write("A{}".format(i + 2), "{}".format(list1[i].MgsAniId), red)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+
+if __name__ == "__main__":
+    list1 = _queries.ColostrumOverrideQueryList.prmMilkGeneralSettingFlat_query()
+    list2 = _queries.ColostrumOverrideQueryList.colostrum_override_query()
+    Singleton.compare(list1, list2)
