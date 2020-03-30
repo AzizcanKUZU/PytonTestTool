@@ -37,6 +37,14 @@ T4CActiveTreatments_total_list = list()
 #AttentionSettings
 milking_attention_settings_total_list = list()
 
+#cowInformation
+cow_information_total_list = list()
+
+#During
+during_total_list = list()
+
+#Milking_events
+milking_events_total_list = list()
 
 class CowTeatQueryList(object):
 
@@ -394,8 +402,6 @@ class ActiveTreatments(object):
             active_treatments_total_list.append(new_animal_information)
         return active_treatments_total_list
 
-
-
 class AttentionSettings(object):
     @staticmethod
     def milking_attention_settings_query():
@@ -420,3 +426,147 @@ class AttentionSettings(object):
             return row
         else:
             return ""
+
+class CowInformation(object):
+    @staticmethod
+    def cow_information_query():
+        query = """select * from cow_information"""
+        for row in Connection.connection().execute(query):
+            new_cow_information = _classes.CowInformation(row[0], row[1], row[2])
+            cow_information_total_list.append(new_cow_information)
+        return cow_information_total_list
+
+
+    @staticmethod
+    def hemAnimal_query(aniId):
+        query = """select AniId , AniResponderNumber from HemAnimal where AniId =?"""
+        cursor = Connection.connection()
+        cursor.execute(query, aniId)
+        row = cursor.fetchone()
+
+        if row != None:
+            return row
+        else:
+            return ""
+
+class During(object):
+    @staticmethod
+    def during_query():
+        query = """select * from during_milking order by cow_id asc"""
+        for row in Connection.connection().execute(query):
+            new_during = _classes.During(row[0], row[1], row[2], row[3], row[4], row[5],
+                                         row[6], row[7], row[8], row[9],row[10], row[11],
+                                         row[12], row[13], row[14], row[15], row[16], row[17],
+                                         row[18], row[19])
+            during_total_list.append(new_during)
+        return during_total_list
+
+    @staticmethod
+    def prmMilkDuringSettingFlat(cow_id):
+        query = """select 
+                         MdsAniId,
+                         MdrVacuumLevel,
+                         MdsPulsationRateLF,
+                         MdsPulsationRateRF,
+                         MdsPulsationRateLR,
+                         MdsPulsationRateRR,
+                         MdsMilkRestRatioLF,
+                         MdsMilkRestRatioRF,
+                         MdsMilkRestRatioLR,
+                         MdsMilkRestRatioRR, 
+                         MdsPulsationMethod,
+                         MdsTakeOff,
+                         MdsCustomTakeOffLevel,
+                         MdsCustomTakeOffDelay,
+                         MdsDelayedTakeOffHighConduct,
+                         MdsSCCOnMilkYieldAtt
+                    from PrmMilkDuringSettingFlat
+                    where mdsAniId =?"""
+
+        cursor = Connection.connection()
+        cursor.execute(query, cow_id)
+        row = cursor.fetchone()
+
+        if row != None:
+            return row
+        else:
+            return ""
+
+    @staticmethod
+    def PulsationMethod(pulsationId):
+        case = {
+            0: "CROSSED", \
+            1: "LEFT_RIGHT", \
+            2: "FRONT_REAR", \
+            3: "IN_PHASE", \
+            4: "CIRCULAR", \
+            }
+        return case.get(pulsationId, "")
+
+    @staticmethod
+    def TakeOffMethod(takeOffId):
+        case = {
+            0: "NORMAL", \
+            1: "QUICK", \
+            4: "FIRST_THREE_DELAYED", \
+            16: "SLOW", \
+            32: "CUSTOM_END", \
+            }
+        return case.get(takeOffId, "")
+
+    @staticmethod
+    def milkPreSettingFlat(cow_id):
+        query = """select  MprVacuumDependsOnMilkflow , MprPulsDependsOnMilkflow from  
+                    PrmMilkPreSettingFlat where MprAniId =?"""
+        cursor = Connection.connection()
+        cursor.execute(query, cow_id)
+        row = cursor.fetchone()
+
+        if row != None:
+            return row
+        else:
+            return ""
+
+class MilkingEvents(object):
+
+    @staticmethod
+    def events_query():
+        query = "select * from milking_events order by cow_id asc"
+        cursor = Connection.connection()
+        cursor.execute(query)
+        row = cursor.fetchall()
+        return row
+
+
+#MilkingIntervalSetting
+class IntervalSettings(object):
+
+    @staticmethod
+    def IntervalSettings_query():
+        query = "select * from milking_interval_settings  order by 1,2 asc"
+        cursor = Connection.connection()
+        cursor.execute(query)
+        row = cursor.fetchall()
+        return row
+
+    @staticmethod
+    def PrmMilkAccessSettingsFlat_query(cow_id):
+        query="""SELECT 
+                 MasAniId,MasLactationBorder1, 
+                 MasMinExpectedYield_0, MasMinMilkings_0, MasMaxMilkings_0,
+				 MasMinExpectedYield_1, MasMinMilkings_1, MasMaxMilkings_1,
+                 MasMinExpectedYield_2, MasMinMilkings_2, MasMaxMilkings_2
+                 FROM PrmMilkAccessSettingFlat  where MasAniId =?"""
+        cursor = Connection.connection()
+        cursor.execute(query, cow_id)
+        row = cursor.fetchone()
+
+        if row == None:
+            return ""
+        else:
+            return row
+
+
+
+
+
