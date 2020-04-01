@@ -590,3 +590,31 @@ class LactationSettings(object):
 
 
 
+class MilkPre(object):
+    @staticmethod
+    def PreMilking_query():
+        query = "select * from pre_milking order by 1 desc"
+        cursor = Connection.connection()
+        cursor.execute(query)
+        row = cursor.fetchall()
+
+        if row  == None:
+            row = ""
+        else:
+            return row
+
+    @staticmethod
+    def PrmPreSettingsFlat_query(cow_id):
+        query = """select MprAniId , MprNumOfTreatmentsLF, MprNumOfTreatmentsRF , MprNumOfTreatmentsLR ,
+                                    MprNumOfTreatmentsRR, MprDurPerTreatmentLF,
+                                    MprDurPerTreatmentRF, MprDurPerTreatmentLR, MprDurPerTreatmentRR, MprStimulationByPulsator 
+                from PrmMilkPreSettingFlat where MprAniId= ?"""
+
+        cursor = Connection.connection()
+        cursor.execute(query, cow_id)
+        row = cursor.fetchone()
+
+        if row == None:
+            return ""
+        else:
+            return row
