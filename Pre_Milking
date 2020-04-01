@@ -1,0 +1,82 @@
+import _config
+import pyodbc
+import xlsxwriter
+from xlsxwriter import exceptions
+from datetime import timedelta, date
+import _queries
+
+class Singleton(object):
+
+    @staticmethod
+    def compare(list_1):
+
+        # First create a workbook then add a worksheet
+        workbook = xlsxwriter.Workbook('MilkPre.xlsx')
+        MilkPre = workbook.add_worksheet("MilkPre")
+
+
+        red = workbook.add_format({'bold': True, 'bg_color': 'red'})
+        green = workbook.add_format({'bold': False, 'bg_color': 'green'})
+        yellow = workbook.add_format({'bold': False, 'bg_color': 'yellow'})
+        bold = workbook.add_format({'bold': True})
+        bold.set_align("center")
+
+        # Header section of PrmMilkGeneralSettingFlat WorkSheet file
+        MilkPre.write('A1', 'cow_id', bold)
+        MilkPre.write('B1', 'number_of_treatments_lf', bold)
+        MilkPre.write('C1', 'number_of_treatments_rf', bold)
+        MilkPre.write('D1', 'number_of_treatments_lr', bold)
+        MilkPre.write('E1', 'number_of_treatments_rr', bold)
+        MilkPre.write('F1', 'duration_per_treatment_lf', bold)
+        MilkPre.write('G1', 'duration_per_treatment_rf', bold)
+        MilkPre.write('H1', 'duration_per_treatment_lr', bold)
+        MilkPre.write('I1', 'duration_per_treatment_rr', bold)
+        MilkPre.write('J1', 'stimulation_by_pulsator', bold)
+
+        for i in range(len(list_1)):
+
+            prmPreSettingsFlat = _queries.MilkPre.PrmPreSettingsFlat_query(list_1[i].cow_id)
+            if prmPreSettingsFlat != "":
+                MilkPre.write("A{}".format(i + 2), "{}".format(list_1[i].cow_id), green)
+
+                if list_1[i].number_of_treatments_lf == prmPreSettingsFlat.MprNumOfTreatmentsLF:
+                    MilkPre.write("B{}".format(i + 2), "{}".format(list_1[i].number_of_treatments_lf), green)
+
+                if list_1[i].number_of_treatments_rf == prmPreSettingsFlat.MprNumOfTreatmentsRF:
+                    MilkPre.write("C{}".format(i + 2), "{}".format(list_1[i].number_of_treatments_rf), green)
+
+                if list_1[i].number_of_treatments_lr == prmPreSettingsFlat.MprNumOfTreatmentsRR:
+                    MilkPre.write("D{}".format(i + 2), "{}".format(list_1[i].number_of_treatments_lr), green)
+
+                if list_1[i].number_of_treatments_rr == prmPreSettingsFlat.MprNumOfTreatmentsLR:
+                    MilkPre.write("E{}".format(i + 2), "{}".format(list_1[i].number_of_treatments_rr), green)
+
+                if list_1[i].duration_per_treatment_lf == prmPreSettingsFlat.MprDurPerTreatmentLF:
+                    MilkPre.write("F{}".format(i + 2), "{}".format(list_1[i].duration_per_treatment_lf), green)
+
+                if list_1[i].duration_per_treatment_rf == prmPreSettingsFlat.MprDurPerTreatmentRF:
+                    MilkPre.write("G{}".format(i + 2), "{}".format(list_1[i].duration_per_treatment_rf), green)
+
+                if list_1[i].duration_per_treatment_lr == prmPreSettingsFlat.MprDurPerTreatmentLR:
+                    MilkPre.write("H{}".format(i + 2), "{}".format(list_1[i].duration_per_treatment_lr), green)
+
+                if list_1[i].duration_per_treatment_rr == prmPreSettingsFlat.MprDurPerTreatmentRR:
+                    MilkPre.write("I{}".format(i + 2), "{}".format(list_1[i].duration_per_treatment_rr), green)
+
+                if list_1[i].stimulation_by_pulsator == prmPreSettingsFlat.MprStimulationByPulsator:
+                    MilkPre.write("J{}".format(i + 2), "{}".format(list_1[i].stimulation_by_pulsator), green)
+
+        while True:
+            try:
+                workbook.close()
+            except xlsxwriter.exceptions.FileCreateError as e:
+                decision = input("Exception caught in workbook.close(): %s\n"
+                                 "Please close the file if it is open in Excel.\n"
+                                 "Try to write file again? [Y/n]:" % e)
+                if decision != 'n':
+                    continue
+            break
+
+if __name__ == "__main__":
+    list1 = _queries.MilkPre.PreMilking_query()
+    Singleton.compare(list1)
